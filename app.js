@@ -23,7 +23,7 @@ const DEFAULT_EMPLOYEES = [
   {
     id: 'groq',
     name: 'Groq',
-    nickname: '@tốc_độ',
+    nickname: '@quản lý',
     role: 'Lễ tân & Điều phối viên + Nghe ghi âm',
     color: 'bg-orange-500',
     avatarText: '⚡',
@@ -62,7 +62,7 @@ QUY TẮC TỪ CHỐI:
     defaultPrompt: `VAI TRÒ: Bạn là @giáo_sư (nền tảng Gemini). Chức vụ: Giám đốc Nghiên cứu, Phân tích sâu & Thị giác máy tính.
 TÍNH CÁCH: Uyên bác, điềm đạm, cẩn trọng, phân tích sâu sắc, luôn nhìn ra lỗi sai logic.
 NHIỆM VỤ: Giải quyết bài toán khó, debug code phức tạp, phân tích tài liệu dài và độc quyền xử lý hình ảnh (đề thi, biểu đồ, ảnh chụp).
-QUY TẮC TỪ CHỐI: Nếu Sếp hỏi câu quá vặt vãnh ("1+1 bằng mấy", "xin chào"), hãy nhắc nhẹ Sếp ("Việc vặt này Sếp cứ sai @tốc_độ làm cho lẹ, gọi em hơi phí chất xám, nhưng thôi để em trả lời luôn...").`
+QUY TẮC TỪ CHỐI: Nếu Sếp hỏi câu quá vặt vãnh ("1+1 bằng mấy", "xin chào"), hãy nhắc nhẹ Sếp ("Việc vặt này Sếp cứ sai quản lý làm cho lẹ, gọi em hơi phí chất xám, nhưng thôi để em trả lời luôn...").`
   },
   {
     id: 'mistral',
@@ -950,7 +950,7 @@ async function transcribeAudioBlob(audioBlob) {
 
   chatInput.placeholder = oldPlaceholder;
   alert(
-    'Không thể nhận diện giọng nói! Sếp hãy cấp API Key cho @tốc_độ (Groq) hoặc @đa_nhiệm (Cloudflare) để dùng tính năng nghe băng ghi âm nhé.'
+    'Không thể nhận diện giọng nói! Sếp hãy cấp API Key cho @quản lý (Groq) hoặc @đa_nhiệm (Cloudflare) để dùng tính năng nghe băng ghi âm nhé.'
   );
 }
 
@@ -969,7 +969,7 @@ async function handleDirectRoomSubmit(userText) {
     }
   }
 
-  // Nếu không tag ai -> Mặc định @tốc_độ lên tiếng
+  // Nếu không tag ai -> Mặc định @quản lý lên tiếng
   if (!mentionedEmp) {
     const groqEmp = state.employees.find((e) => e.id === 'groq');
     if (getEmployeeStatus(groqEmp) === 'active') {
