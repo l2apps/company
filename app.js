@@ -52,7 +52,7 @@ QUY TẮC TỪ CHỐI:
     color: 'bg-blue-600',
     avatarText: '🎓',
     // Dùng free tier nên chọn 3.8 Flash (gemini-4-argon không có trên free tier)
-    model: 'gemini-3.8-flash',
+    model: 'gemini-3.5-flash-lite',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent',
     apiKey: '',
     accountId: '',
