@@ -1756,11 +1756,11 @@ function switchRoom(roomId) {
   debateBar.classList.toggle('hidden', roomId !== 'debate');
 
   if (roomId === 'direct') {
-    subtitle.innerHTML = `<i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i><span>Gõ <b>@biệt_danh</b> để giao việc trực tiếp. Không tag ai mặc định <b>@tốc_độ</b> sẽ tiếp nhận.</span>`;
+    subtitle.innerHTML = `<i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i><span>Gõ <b>@</b> để giao việc trực tiếp. </span>`;
   } else if (roomId === 'pipeline') {
-    subtitle.innerHTML = `<i data-lucide="git-merge" class="w-3.5 h-3.5 text-indigo-400"></i><span>Tự động chạy 3 bước: <b>@thủ_thư</b> lọc Rerank &rarr; <b>@tốc_độ</b> chia việc JSON &rarr; Chuyên gia thực thi.</span>`;
+    subtitle.innerHTML = `<i data-lucide="git-merge" class="w-3.5 h-3.5 text-indigo-400"></i><span>Tự động chạy 3 bước:  lọc Rerank &rarr;  chia việc JSON &rarr; Chuyên gia thực thi.</span>`;
   } else {
-    subtitle.innerHTML = `<i data-lucide="swords" class="w-3.5 h-3.5 text-indigo-400"></i><span>Tranh luận tối đa 3 hiệp: Đề xuất &rarr; <b>@giáo_sư</b> Vạch lá tìm sâu &rarr; Chốt hạ.</span>`;
+    subtitle.innerHTML = `<i data-lucide="swords" class="w-3.5 h-3.5 text-indigo-400"></i><span>Tranh luận tối đa 3 hiệp: Đề xuất &rarr;  Vạch lá tìm sâu &rarr; Chốt hạ.</span>`;
   }
 
   renderChatMessages();
