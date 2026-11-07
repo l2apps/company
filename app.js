@@ -296,24 +296,14 @@ function buildFullSystemPrompt(emp) {
 // 4. TÍCH HỢP GỌI API THẬT CHO CẢ 5 DỊCH VỤ (CÓ PROXY CHO CLOUDFLARE & COHERE)
 // ============================================================================
 async function fetchWithOptionalProxy(targetUrl, options, forceProxy = false) {
+  // Groq, Gemini, Mistral gọi thẳng trực tiếp (forceProxy = false)
   if (!forceProxy) {
     return fetch(targetUrl, options);
   }
-  // Gọi qua local proxy /api/proxy trong server.js để tránh lỗi CORS
-  try {
-    const proxyRes = await fetch('/api/proxy', {
-      method: 'POST',
-      headers: {
-        ...options.headers,
-        'X-Target-URL': targetUrl
-      },
-      body: options.body
-    });
-    if (proxyRes.status !== 404) return proxyRes;
-  } catch (_) {
-    // Nếu người dùng mở trực tiếp file index.html mà không chạy node server.js, thử gọi thẳng
-  }
-  return fetch(targetUrl, options);
+
+  // Cohere và Cloudflare gọi qua CORS Proxy miễn phí để chạy được trên GitHub Pages
+  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
+  return fetch(proxyUrl, options);
 }
 
 async function callEmployeeAPI(emp, userPrompt, options = {}) {
