@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Office - Văn Phòng Nhân Sự AI</title>
+  <title>Tuan Office</title>
 
   <!-- TailwindCSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -59,7 +59,7 @@
         </div>
         <div>
           <h1 class="font-bold text-sm tracking-tight leading-none">AI OFFICE</h1>
-          <span class="text-[11px] text-slate-500 dark:text-slate-400">Văn Phòng Nhân Sự AI</span>
+          <span class="text-[11px] text-slate-500 dark:text-slate-400">Văn Phòng Nhân Sự</span>
         </div>
       </div>
 
@@ -88,7 +88,7 @@
     <div class="p-3 border-t border-slate-200 dark:border-[#2a2f3d] bg-slate-50/70 dark:bg-[#12151e]">
       <div class="flex items-center justify-between mb-1.5">
         <label for="companyHandbook" class="text-xs font-semibold flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-          <i data-lucide="book-open-check" class="w-3.5 h-3.5"></i>
+          <i data-lucide="book-open-check" class="w-3.5 h-3.5">Đồng lòng - Chung tầm - Vươn xa</i>
           Sổ tay Công ty (Shared Memory)
         </label>
         <span id="handbookSavedBadge" class="text-[10px] text-emerald-500 opacity-0 transition-opacity">Đã lưu ✓</span>
@@ -96,7 +96,7 @@
       <textarea
         id="companyHandbook"
         rows="3"
-        placeholder="VD: Sếp là sinh viên CNTT, thích trả lời ngắn gọn, ưu tiên ví dụ code thực tế..."
+        placeholder="VD: Chung tay"
         class="w-full text-xs rounded-lg p-2 bg-white dark:bg-[#1e222d] border border-slate-200 dark:border-[#2a2f3d] focus:outline-none focus:border-indigo-500 resize-none text-slate-700 dark:text-slate-200 select-text"
       ></textarea>
     </div>
@@ -110,7 +110,7 @@
       <div class="flex items-center gap-2">
         <button data-room="direct" class="room-tab active-tab flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition">
           <i data-lucide="message-square-dot" class="w-4 h-4"></i>
-          <span>Phòng 1: Gọi Riêng (Direct Call)</span>
+          <span>Phòng 1: Văn phòng </span>
         </button>
         <button data-room="pipeline" class="room-tab flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition">
           <i data-lucide="git-merge" class="w-4 h-4"></i>
@@ -125,7 +125,7 @@
       <!-- Mô tả nhanh phòng hiện tại -->
       <div id="roomSubtitle" class="text-xs text-slate-500 dark:text-slate-400 hidden lg:flex items-center gap-1.5">
         <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i>
-        <span>Gõ <b>@biệt_danh</b> để giao việc trực tiếp. Không tag ai mặc định <b>@tốc_độ</b> sẽ tiếp nhận.</span>
+        <span>Gõ <b>@</b> để giao việc trực tiếp.</span>
       </div>
     </header>
 
