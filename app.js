@@ -319,15 +319,31 @@ function buildFullSystemPrompt(emp) {
 // ============================================================================
 // 4. TÍCH HỢP GỌI API THẬT CHO CẢ 5 DỊCH VỤ (CÓ PROXY CHO CLOUDFLARE & COHERE)
 // ============================================================================
+// Nếu app chạy trên GitHub Pages (github.io) thì dán link Cloudflare Worker vào đây,
+// ví dụ: 'https://ai-office-proxy.ten-cua-sep.workers.dev/'
+// Để trống '' nếu app chạy bằng server Node (dùng /api/proxy trong server.js).
+const WORKER_PROXY_URL = '';
+
 async function fetchWithOptionalProxy(targetUrl, options, forceProxy = false) {
   // Groq, Gemini, Mistral gọi thẳng trực tiếp (forceProxy = false)
   if (!forceProxy) {
     return fetch(targetUrl, options);
   }
 
-  // Cohere và Cloudflare gọi qua CORS Proxy miễn phí để chạy được trên GitHub Pages
-  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
-  return fetch(proxyUrl, options);
+  // Cohere và Cloudflare không cho trình duyệt gọi trực tiếp (CORS) nên phải qua proxy.
+  if (WORKER_PROXY_URL) {
+    return fetch(`${WORKER_PROXY_URL}?url=${encodeURIComponent(targetUrl)}`, options);
+  }
+
+  if (location.hostname.endsWith('github.io')) {
+    throw new Error(
+      'Đang chạy trên github.io nên chưa có proxy. Sếp dán link Cloudflare Worker vào WORKER_PROXY_URL trong app.js.'
+    );
+  }
+
+  const headers = new Headers(options.headers || {});
+  headers.set('X-Target-URL', targetUrl);
+  return fetch('/api/proxy', { ...options, method: 'POST', headers });
 }
 
 async function callEmployeeAPI(emp, userPrompt, options = {}) {
