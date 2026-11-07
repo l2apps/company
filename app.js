@@ -6,6 +6,10 @@ if (window.pdfjsLib) {
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
+// Tăng giá trị này mỗi khi đổi model mặc định để ép trình duyệt cập nhật lại
+// (nếu không, localStorage sẽ giữ model cũ và ghi đè lên DEFAULT_EMPLOYEES)
+const MODEL_VERSION = '2026-11';
+
 const BASE_SYSTEM_PROMPT_TEMPLATE = `BỐI CẢNH CHUNG:
 Bạn là nhân viên trong "Văn phòng AI" của Sếp (người dùng). Bạn làm việc cùng các đồng nghiệp: {DANH_SÁCH_BIỆT_DANH_ĐỒNG_NGHIỆP}.
 Chỉ thị chung của Sếp từ Sổ tay Công ty: "{NỘI_DUNG_SỔ_TAY_CÔNG_TY}"
@@ -23,7 +27,8 @@ const DEFAULT_EMPLOYEES = [
     role: 'Lễ tân & Điều phối viên + Nghe ghi âm',
     color: 'bg-orange-500',
     avatarText: '⚡',
-    model: 'llama-3.3-70b-versatile',
+    // llama-3.3-70b-versatile đã bị Groq ngừng từ 16/08/2026
+    model: 'openai/gpt-oss-120b',
     audioModel: 'whisper-large-v3-turbo',
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
     audioEndpoint: 'https://api.groq.com/openai/v1/audio/transcriptions',
@@ -46,7 +51,8 @@ QUY TẮC TỪ CHỐI:
     role: 'Chuyên gia Nghiên cứu, Giải toán/Code & Vision',
     color: 'bg-blue-600',
     avatarText: '🎓',
-    model: 'gemini-2.5-flash',
+    // Dùng free tier nên chọn 3.8 Flash (gemini-4-argon không có trên free tier)
+    model: 'gemini-3.8-flash',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent',
     apiKey: '',
     accountId: '',
@@ -84,7 +90,7 @@ QUY TẮC TỪ CHỐI: Nếu Sếp bắt nhìn ảnh hoặc giải thuật toán
     role: 'Thủ thư Tra cứu & Lọc tài liệu (Rerank)',
     color: 'bg-teal-600',
     avatarText: '📚',
-    model: 'command-r-08-2024',
+    model: 'command-a-03-2025',
     rerankModel: 'rerank-v3.5',
     endpoint: 'https://api.cohere.com/v2/chat',
     rerankEndpoint: 'https://api.cohere.com/v2/rerank',
@@ -104,9 +110,9 @@ NHIỆM VỤ: Chấm điểm và lọc ra các đoạn văn bản liên quan nh�
     role: 'Hậu cần, Dự bị (Backup) & Đa phương tiện',
     color: 'bg-emerald-600',
     avatarText: '🛠️',
-    model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+    model: '@cf/qwen/qwen3.8-27b',
     audioModel: '@cf/openai/whisper',
-    endpoint: 'https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+    endpoint: 'https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/qwen/qwen3.8-27b',
     audioEndpoint: 'https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/openai/whisper',
     apiKey: '',
     accountId: '',
@@ -204,19 +210,36 @@ function loadConfigFromStorage() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const savedDate = localStorage.getItem('ai_office_quota_date');
   const savedEmployees = localStorage.getItem('ai_office_employees');
+  const savedVer = localStorage.getItem('ai_office_model_ver');
 
   if (savedEmployees) {
     const parsed = JSON.parse(savedEmployees);
     state.employees = DEFAULT_EMPLOYEES.map((def) => {
       const found = parsed.find((p) => p.id === def.id) || {};
-      return {
+      const merged = {
         ...def,
         ...found,
         systemPrompt: found.systemPrompt || def.defaultPrompt,
         quotaUsed: savedDate === todayStr ? (found.quotaUsed || 0) : 0,
         cooldownUntil: 0
       };
+
+      // Phiên bản model đã đổi -> ép dùng model/endpoint mặc định mới
+      // (giữ nguyên API Key, quota, system prompt, biệt danh của Sếp)
+      if (savedVer !== MODEL_VERSION) {
+        merged.model = def.model;
+        merged.audioModel = def.audioModel;
+        merged.endpoint = def.endpoint;
+        merged.audioEndpoint = def.audioEndpoint;
+        merged.rerankModel = def.rerankModel;
+        merged.rerankEndpoint = def.rerankEndpoint;
+      }
+      return merged;
     });
+    // Lưu lại ngay để lần sau không migrate nữa
+    if (savedVer !== MODEL_VERSION) {
+      saveEmployeesToStorage();
+    }
   } else {
     state.employees = DEFAULT_EMPLOYEES.map((def) => ({
       ...def,
@@ -224,6 +247,7 @@ function loadConfigFromStorage() {
     }));
   }
 
+  localStorage.setItem('ai_office_model_ver', MODEL_VERSION);
   localStorage.setItem('ai_office_quota_date', todayStr);
   state.handbook = localStorage.getItem('ai_office_handbook') || '';
   document.getElementById('companyHandbook').value = state.handbook;
@@ -372,7 +396,7 @@ async function callEmployeeAPI(emp, userPrompt, options = {}) {
 
   // --- 2. GEMINI (Google Generative AI REST API + Vision) ---
   if (emp.id === 'gemini') {
-    const modelName = (emp.model || 'gemini-2.5-flash').trim();
+    const modelName = (emp.model || 'gemini-3.8-flash').trim();
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(emp.apiKey.trim())}`;
 
     const parts = [{ text: finalUserText }];
@@ -425,7 +449,7 @@ async function callEmployeeAPI(emp, userPrompt, options = {}) {
           Authorization: `Bearer ${emp.apiKey.trim()}`
         },
         body: JSON.stringify({
-          model: emp.model || 'command-r-08-2024',
+          model: emp.model || 'command-a-03-2025',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: finalUserText }
@@ -452,7 +476,7 @@ async function callEmployeeAPI(emp, userPrompt, options = {}) {
   // --- 5. CLOUDFLARE WORKERS AI ---
   if (emp.id === 'cloudflare') {
     const accountId = emp.accountId.trim();
-    const modelPath = emp.model || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+    const modelPath = emp.model || '@cf/qwen/qwen3.8-27b';
     const targetUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${modelPath}`;
 
     response = await fetchWithOptionalProxy(
@@ -508,7 +532,7 @@ async function callCohereRerank(query, chunks) {
 
   incrementQuota('cohere');
   const res = await fetchWithOptionalProxy(
-    'https://api.cohere.com/v2/rerank',
+    cohereEmp.rerankEndpoint || 'https://api.cohere.com/v2/rerank',
     {
       method: 'POST',
       headers: {
@@ -516,7 +540,7 @@ async function callCohereRerank(query, chunks) {
         Authorization: `Bearer ${cohereEmp.apiKey.trim()}`
       },
       body: JSON.stringify({
-        model: 'rerank-v3.5',
+        model: cohereEmp.rerankModel || 'rerank-v3.5',
         query,
         documents: chunks,
         top_n: 3
@@ -539,7 +563,7 @@ async function callCohereRerank(query, chunks) {
 }
 
 // ============================================================================
-// 5. CƠ CHẾ TỰ ĐỘNG LÀM THAY (AUTO-FALLBACK KHI LỖI 429 / MẠNG)
+// 5. CƠ CHẾ TỰ ĐỘNG LÀM THAY (AUTO-FALLBACK KHI LỖI 429 / MẠNG / SAI MODEL)
 // ============================================================================
 async function executeWithAutoFallback(targetEmp, userPrompt, options = {}) {
   try {
@@ -550,11 +574,25 @@ async function executeWithAutoFallback(targetEmp, userPrompt, options = {}) {
   } catch (error) {
     hideTypingIndicator();
 
-    // Đặt trạng thái Quá tải (Đi uống trà đá 60s)
-    setEmployeeOverload(targetEmp.id, 60);
+    // 404 / 400 thường do tên model sai hoặc đã bị ngừng -> KHÔNG phải quá tải,
+    // không nên phạt "uống trà đá 60s" mà báo rõ để Sếp sửa tên model.
+    const isModelError = error.status === 404 || error.status === 400;
+    const isRateLimit = error.status === 429;
+
+    if (!isModelError) {
+      // Đặt trạng thái Quá tải (Đi uống trà đá 60s)
+      setEmployeeOverload(targetEmp.id, 60);
+    }
+
+    let reasonText = error.message;
+    if (isRateLimit) {
+      reasonText = 'Lỗi 429 Quá tải - Đi uống trà đá 60s';
+    } else if (isModelError) {
+      reasonText = `Lỗi ${error.status}: model "${targetEmp.model}" có thể sai tên hoặc đã bị ngừng. Sếp mở hồ sơ ${targetEmp.nickname} để kiểm tra ô Model`;
+    }
 
     appendSystemMessage(
-      `⚠️ **${targetEmp.nickname}** gặp sự cố (${error.status === 429 ? 'Lỗi 429 Quá tải - Đi uống trà đá 60s' : error.message}). Đang tìm nhân viên dự bị làm thay...`
+      `⚠️ **${targetEmp.nickname}** gặp sự cố (${reasonText}). Đang tìm nhân viên dự bị làm thay...`
     );
 
     // Ưu tiên @đa_nhiệm (Cloudflare), nếu nghỉ phép thì tìm đồng nghiệp khác đang active
@@ -826,13 +864,13 @@ async function transcribeAudioBlob(audioBlob) {
   const groqEmp = state.employees.find((e) => e.id === 'groq');
   const cfEmp = state.employees.find((e) => e.id === 'cloudflare');
 
-  // 1. Thử gọi Groq Whisper (whisper-large-v3-turbo)
+  // 1. Thử gọi Groq Whisper (model lấy từ cấu hình audioModel)
   if (groqEmp && getEmployeeStatus(groqEmp) === 'active') {
     try {
       incrementQuota('groq');
       const formData = new FormData();
       formData.append('file', audioBlob, 'voice.webm');
-      formData.append('model', 'whisper-large-v3-turbo');
+      formData.append('model', groqEmp.audioModel || 'whisper-large-v3-turbo');
       formData.append('language', 'vi');
 
       const res = await fetch(groqEmp.audioEndpoint, {
@@ -851,6 +889,8 @@ async function transcribeAudioBlob(audioBlob) {
           chatInput.focus();
           return;
         }
+      } else {
+        console.warn(`Groq Whisper trả lỗi ${res.status}, chuyển sang Cloudflare Whisper`);
       }
     } catch (e) {
       console.warn('Groq Whisper lỗi, chuyển sang Cloudflare Whisper:', e);
@@ -862,7 +902,7 @@ async function transcribeAudioBlob(audioBlob) {
     try {
       incrementQuota('cloudflare');
       const arrayBuffer = await audioBlob.arrayBuffer();
-      const targetUrl = `https://api.cloudflare.com/client/v4/accounts/${cfEmp.accountId.trim()}/ai/run/@cf/openai/whisper`;
+      const targetUrl = `https://api.cloudflare.com/client/v4/accounts/${cfEmp.accountId.trim()}/ai/run/${cfEmp.audioModel || '@cf/openai/whisper'}`;
 
       const res = await fetchWithOptionalProxy(
         targetUrl,
@@ -972,7 +1012,7 @@ function splitTextIntoChunks(text, maxWords = 180) {
 }
 
 async function handlePipelineRoomSubmit(userText) {
-  setPipelineStepStatus(1, ' active');
+  setPipelineStepStatus(1, 'active');
   setPipelineStepStatus(2, 'idle');
   setPipelineStepStatus(3, 'idle');
 
@@ -997,7 +1037,7 @@ async function handlePipelineRoomSubmit(userText) {
 
       appendAIMessage(
         librarian,
-        `📚 **Báo cáo Bước 1 (Lọc tài liệu):** Em đã chia tài liệu thành **${chunks.length} đoạn** và lọc ra **Top ${rerankResult.topChunks.length} đoạn** sát nhất với câu hỏi của Sếp (${rerankResult.usedCohereAPI ? 'Dùng Cohere Rerank v3.5 API' : 'Chế độ lọc cục bộ do chưa nhập Key Cohere'}):\n\n${topChunksContext}`,
+        `📚 **Báo cáo Bước 1 (Lọc tài liệu):** Em đã chia tài liệu thành **${chunks.length} đoạn** và lọc ra **Top ${rerankResult.topChunks.length} đoạn** sát nhất với câu hỏi của Sếp (${rerankResult.usedCohereAPI ? 'Dùng Cohere Rerank API' : 'Chế độ lọc cục bộ do chưa nhập Key Cohere'}):\n\n${topChunksContext}`,
         userText
       );
     } catch (e) {
