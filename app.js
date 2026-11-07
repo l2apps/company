@@ -322,7 +322,7 @@ function buildFullSystemPrompt(emp) {
 // Nếu app chạy trên GitHub Pages (github.io) thì dán link Cloudflare Worker vào đây,
 // ví dụ: 'https://ai-office-proxy.ten-cua-sep.workers.dev/'
 // Để trống '' nếu app chạy bằng server Node (dùng /api/proxy trong server.js).
-const WORKER_PROXY_URL = '';
+const WORKER_PROXY_URL = 'https://tny.qp198178.workers.dev';
 
 async function fetchWithOptionalProxy(targetUrl, options, forceProxy = false) {
   // Groq, Gemini, Mistral gọi thẳng trực tiếp (forceProxy = false)
