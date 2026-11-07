@@ -1,0 +1,9 @@
+{
+  "name": "ai-office-van-phong-ai",
+  "version": "1.0.0",
+  "description": "AI Office - Văn Phòng Nhân Sự AI (Groq, Gemini, Mistral, Cohere, Cloudflare)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
