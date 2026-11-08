@@ -1,14 +1,14 @@
 // ============================================================================
-// 1. CẤU HÌNH PDF.JS WORKER & DỮ LIỆU MẶC ĐỊNH CỦA 5 NHÂN VIÊN AI
+// 1. CẤU HÌNH PDF.JS WORKER & DỮ LIỆU MẶC ĐỊNH CỦA 6 NHÂN VIÊN AI
 // ============================================================================
 if (window.pdfjsLib) {
   window.pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
-// Tăng giá trị này mỗi khi đổi model mặc định để ép trình duyệt cập nhật lại
-// (nếu không, localStorage sẽ giữ model cũ và ghi đè lên DEFAULT_EMPLOYEES)
-const MODEL_VERSION = '2026-11';
+// Tăng giá trị này mỗi khi đổi model/biệt danh/prompt mặc định để ép trình duyệt cập nhật lại
+// (vẫn giữ nguyên API Key và Account ID mà Sếp đã nhập trong localStorage)
+const MODEL_VERSION = '2026-12';
 
 const BASE_SYSTEM_PROMPT_TEMPLATE = `BỐI CẢNH CHUNG:
 Bạn là nhân viên trong "Văn phòng AI" của Sếp (người dùng). Bạn làm việc cùng các đồng nghiệp: {DANH_SÁCH_BIỆT_DANH_ĐỒNG_NGHIỆP}.
@@ -23,11 +23,10 @@ const DEFAULT_EMPLOYEES = [
   {
     id: 'groq',
     name: 'Groq',
-    nickname: '@quản lý',
-    role: 'Lễ tân & Điều phối viên + Nghe ghi âm',
+    nickname: '@quản_lý',
+    role: 'Quản lý Điều phối & Phản ứng nhanh + Nghe ghi âm',
     color: 'bg-orange-500',
     avatarText: '⚡',
-    // llama-3.3-70b-versatile đã bị Groq ngừng từ 16/08/2026
     model: 'openai/gpt-oss-120b',
     audioModel: 'whisper-large-v3-turbo',
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
@@ -37,21 +36,26 @@ const DEFAULT_EMPLOYEES = [
     quotaUsed: 0,
     quotaLimit: 200,
     cooldownUntil: 0,
-    defaultPrompt: `VAI TRÒ: Bạn là @tốc_độ (nền tảng Groq). Chức vụ: Trưởng bộ phận Phản ứng nhanh & Điều phối viên.
-TÍNH CÁCH: Nhanh gọn, thực dụng, ghét sự rườm rà, đi thẳng vào vấn đề.
-NHIỆM VỤ: Trả lời tức thì câu hỏi ngắn, tra cứu nhanh, giải thích khái niệm cơ bản, viết code ngắn hoặc phân loại việc của Sếp.
-QUY TẮC TỪ CHỐI:
-- Nếu Sếp gửi hình ảnh: Từ chối ngay ("Sếp ơi em không xem được ảnh đâu, để em gọi @giáo_sư nhìn giúp Sếp nhé! [CHUYỂN_TIẾP: @giáo_sư]").
-- Nếu Sếp bắt viết bài văn/tiểu luận dài hoặc phân tích sâu tài liệu dài: Chỉ gạch đầu dòng cốt lõi rồi đá sang cho @thư_ký hoặc @giáo_sư kèm tag [CHUYỂN_TIẾP: @thư_ký].`
+    defaultPrompt: `VAI TRÒ: Bạn là @quản_lý (nền tảng Groq). Chức vụ: Quản lý Điều phối viên & Trưởng bộ phận Phản ứng nhanh.
+TÍNH CÁCH: Nhanh gọn, thực dụng, ghét sự rườm rà, đi thẳng vào vấn đề, rất giỏi phân việc cho cấp dưới.
+NHIỆM VỤ: Trả lời tức thì câu hỏi ngắn, tra cứu nhanh, giải thích khái niệm cơ bản, viết code ngắn hoặc điều phối việc của Sếp.
+QUY TẮC SAI VẶT @freelancer:
+Bạn có một cấp dưới tên là @freelancer chuyên làm các việc kỹ thuật (vẽ biểu đồ, vẽ sơ đồ, tra từ điển, tìm sách). Khi Sếp yêu cầu các việc này, bạn hãy trả lời Sếp thật ngắn gọn và gọi @freelancer làm việc bằng cách đặt ĐÚNG 1 trong các thẻ lệnh sau ở cuối câu trả lời:
+- Nếu Sếp bảo vẽ biểu đồ số liệu: [FREELANCER_TASK: CHART | <Chuỗi JSON cấu hình Chart.js hợp lệ trên 1 dòng>]
+- Nếu Sếp bảo vẽ sơ đồ khối/mindmap/quy trình: [FREELANCER_TASK: DIAGRAM | <Mã Mermaid.js hợp lệ>]
+- Nếu Sếp bảo tra từ điển tiếng Anh: [FREELANCER_TASK: DICT | <từ_cần_tra>]
+- Nếu Sếp bảo tìm sách tham khảo: [FREELANCER_TASK: BOOK | <từ_khóa_sách>]
+QUY TẮC TỪ CHỐI KHÁC:
+- Nếu Sếp gửi hình ảnh: Từ chối ngay ("Sếp ơi em không xem được ảnh đâu, để em gọi @chuyên_gia nhìn giúp Sếp nhé! [CHUYỂN_TIẾP: @chuyên_gia]").
+- Nếu Sếp bắt viết bài văn/tiểu luận dài hoặc phân tích sâu tài liệu dài: Chỉ gạch đầu dòng cốt lõi rồi đá sang cho @thư_ký hoặc @chuyên_gia kèm tag [CHUYỂN_TIẾP: @thư_ký].`
   },
   {
     id: 'gemini',
     name: 'Gemini',
-    nickname: '@giáo_sư',
+    nickname: '@chuyên_gia',
     role: 'Chuyên gia Nghiên cứu, Giải toán/Code & Vision',
     color: 'bg-blue-600',
     avatarText: '🎓',
-    // Dùng free tier nên chọn 3.8 Flash (gemini-4-argon không có trên free tier)
     model: 'gemini-3.5-flash-lite',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent',
     apiKey: '',
@@ -59,10 +63,10 @@ QUY TẮC TỪ CHỐI:
     quotaUsed: 0,
     quotaLimit: 200,
     cooldownUntil: 0,
-    defaultPrompt: `VAI TRÒ: Bạn là @giáo_sư (nền tảng Gemini). Chức vụ: Giám đốc Nghiên cứu, Phân tích sâu & Thị giác máy tính.
+    defaultPrompt: `VAI TRÒ: Bạn là @chuyên_gia (nền tảng Gemini). Chức vụ: Chuyên gia Nghiên cứu, Phân tích sâu & Thị giác máy tính.
 TÍNH CÁCH: Uyên bác, điềm đạm, cẩn trọng, phân tích sâu sắc, luôn nhìn ra lỗi sai logic.
 NHIỆM VỤ: Giải quyết bài toán khó, debug code phức tạp, phân tích tài liệu dài và độc quyền xử lý hình ảnh (đề thi, biểu đồ, ảnh chụp).
-QUY TẮC TỪ CHỐI: Nếu Sếp hỏi câu quá vặt vãnh ("1+1 bằng mấy", "xin chào"), hãy nhắc nhẹ Sếp ("Việc vặt này Sếp cứ sai quản lý làm cho lẹ, gọi em hơi phí chất xám, nhưng thôi để em trả lời luôn...").`
+QUY TẮC TỪ CHỐI: Nếu Sếp hỏi câu quá vặt vãnh ("1+1 bằng mấy", "xin chào"), hãy nhắc nhẹ Sếp ("Việc vặt này Sếp cứ sai @quản_lý làm cho lẹ, gọi em hơi phí chất xám, nhưng thôi để em trả lời luôn...").`
   },
   {
     id: 'mistral',
@@ -81,13 +85,13 @@ QUY TẮC TỪ CHỐI: Nếu Sếp hỏi câu quá vặt vãnh ("1+1 bằng mấ
     defaultPrompt: `VAI TRÒ: Bạn là @thư_ký (nền tảng Mistral). Chức vụ: Thư ký Văn phòng, Chuyên gia Ngôn ngữ & Biên tập viên.
 TÍNH CÁCH: Chỉn chu, lịch thiệp, câu chữ mượt mà, rất giỏi trình bày bố cục (Markdown, bảng biểu).
 NHIỆM VỤ: Viết tiểu luận, báo cáo, soạn email, làm dàn ý slide thuyết trình, dịch thuật chuyên ngành, chuốt lại văn phong.
-QUY TẮC TỪ CHỐI: Nếu Sếp bắt nhìn ảnh hoặc giải thuật toán phức tạp, hãy từ chối khéo và thêm tag [CHUYỂN_TIẾP: @giáo_sư].`
+QUY TẮC TỪ CHỐI: Nếu Sếp bắt nhìn ảnh hoặc giải thuật toán phức tạp, hãy từ chối khéo và thêm tag [CHUYỂN_TIẾP: @chuyên_gia].`
   },
   {
     id: 'cohere',
     name: 'Cohere',
-    nickname: '@thủ_thư',
-    role: 'Thủ thư Tra cứu & Lọc tài liệu (Rerank)',
+    nickname: '@văn_thư',
+    role: 'Văn thư Lưu trữ, Tra cứu & Lọc tài liệu (Rerank)',
     color: 'bg-teal-600',
     avatarText: '📚',
     model: 'command-a-03-2025',
@@ -99,17 +103,17 @@ QUY TẮC TỪ CHỐI: Nếu Sếp bắt nhìn ảnh hoặc giải thuật toán
     quotaUsed: 0,
     quotaLimit: 100,
     cooldownUntil: 0,
-    defaultPrompt: `VAI TRÒ: Bạn là @thủ_thư (nền tảng Cohere). Chức vụ: Quản lý Kho Tài liệu & Tra cứu ngữ nghĩa.
+    defaultPrompt: `VAI TRÒ: Bạn là @văn_thư (nền tảng Cohere). Chức vụ: Văn thư Quản lý Kho Tài liệu & Tra cứu ngữ nghĩa.
 TÍNH CÁCH: Tỉ mỉ, chính xác, luôn nói có sách mách có chứng.
 NHIỆM VỤ: Chấm điểm và lọc ra các đoạn văn bản liên quan nhất từ tài liệu Sếp tải lên (Rerank), hoặc trả lời câu hỏi dựa sát vào tài liệu đính kèm và trích dẫn rõ nguồn.`
   },
   {
     id: 'cloudflare',
     name: 'Cloudflare Workers AI',
-    nickname: '@đa_nhiệm',
-    role: 'Hậu cần, Dự bị (Backup) & Đa phương tiện',
+    nickname: '@trợ_lý',
+    role: 'Trợ lý Hậu cần, Dự bị (Backup) & Đa phương tiện',
     color: 'bg-emerald-600',
-    avatarText: '🛠️',
+    avatarText: '🛡️',
     model: '@cf/qwen/qwen3.8-27b',
     audioModel: '@cf/openai/whisper',
     endpoint: 'https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/qwen/qwen3.8-27b',
@@ -119,9 +123,26 @@ NHIỆM VỤ: Chấm điểm và lọc ra các đoạn văn bản liên quan nh�
     quotaUsed: 0,
     quotaLimit: 300,
     cooldownUntil: 0,
-    defaultPrompt: `VAI TRÒ: Bạn là @đa_nhiệm (nền tảng Cloudflare Workers AI). Chức vụ: Chuyên viên Kỹ thuật Đa phương tiện & Nhân sự Dự bị (Backup).
+    defaultPrompt: `VAI TRÒ: Bạn là @trợ_lý (nền tảng Cloudflare Workers AI). Chức vụ: Trợ lý Kỹ thuật Đa phương tiện & Nhân sự Dự bị (Backup).
 TÍNH CÁCH: Nhiệt tình, chịu khó, ai nghỉ phép hay quá tải là có mặt thế chỗ ngay.
 NHIỆM VỤ: Xử lý âm thanh, hỗ trợ đa tác vụ và sẵn sàng đóng thế bất kỳ đồng nghiệp nào khi có cờ [LÀM_THAY_CHO: @tên].`
+  },
+  {
+    id: 'freelancer',
+    name: 'Freelancer Tools',
+    nickname: '@freelancer',
+    role: 'Tổ Thiết kế, Biểu đồ & Tra cứu (0 tốn Key)',
+    color: 'bg-pink-600',
+    avatarText: '🛠️',
+    model: 'quickchart + kroki + dict + gbooks',
+    endpoint: '',
+    apiKey: 'FREE_NO_KEY_REQUIRED',
+    accountId: '',
+    quotaUsed: 0,
+    quotaLimit: 9999,
+    cooldownUntil: 0,
+    isFreeTool: true,
+    defaultPrompt: `Nhân sự ngoại vi thực thi tự động dưới quyền điều phối của @quản_lý (Groq). Chuyên vẽ Biểu đồ (QuickChart), Sơ đồ (Kroki Mermaid), Tra từ điển (DictionaryAPI) và Tìm sách (Google Books) hoàn toàn miễn phí, tốn 0 API Key.`
   }
 ];
 
@@ -219,24 +240,31 @@ function loadConfigFromStorage() {
       const merged = {
         ...def,
         ...found,
+        isFreeTool: def.isFreeTool || false,
         systemPrompt: found.systemPrompt || def.defaultPrompt,
         quotaUsed: savedDate === todayStr ? (found.quotaUsed || 0) : 0,
         cooldownUntil: 0
       };
 
-      // Phiên bản model đã đổi -> ép dùng model/endpoint mặc định mới
-      // (giữ nguyên API Key, quota, system prompt, biệt danh của Sếp)
+      // Phiên bản cấu hình đã đổi -> cập nhật model, biệt danh mới và prompt mới
+      // nhưng GIỮ NGUYÊN API Key & Account ID của Sếp
       if (savedVer !== MODEL_VERSION) {
+        merged.nickname = def.nickname;
+        merged.role = def.role;
+        merged.avatarText = def.avatarText;
+        merged.color = def.color;
         merged.model = def.model;
         merged.audioModel = def.audioModel;
         merged.endpoint = def.endpoint;
         merged.audioEndpoint = def.audioEndpoint;
         merged.rerankModel = def.rerankModel;
         merged.rerankEndpoint = def.rerankEndpoint;
+        merged.defaultPrompt = def.defaultPrompt;
+        merged.systemPrompt = def.defaultPrompt;
       }
       return merged;
     });
-    // Lưu lại ngay để lần sau không migrate nữa
+
     if (savedVer !== MODEL_VERSION) {
       saveEmployeesToStorage();
     }
@@ -250,17 +278,27 @@ function loadConfigFromStorage() {
   localStorage.setItem('ai_office_model_ver', MODEL_VERSION);
   localStorage.setItem('ai_office_quota_date', todayStr);
   state.handbook = localStorage.getItem('ai_office_handbook') || '';
-  document.getElementById('companyHandbook').value = state.handbook;
+  const hbInput = document.getElementById('companyHandbook');
+  if (hbInput) hbInput.value = state.handbook;
 }
 
 function saveEmployeesToStorage() {
   localStorage.setItem('ai_office_employees', JSON.stringify(state.employees));
 }
 
+// Helper lấy nhân viên theo ID
+function getEmpById(id) {
+  return state.employees.find((e) => e.id === id);
+}
+
 // ============================================================================
 // 3. QUẢN LÝ TRẠNG THÁI NHÂN VIÊN & ĐẾM NGƯỢC 60S QUÁ TẢI
 // ============================================================================
 function getEmployeeStatus(emp) {
+  if (!emp) return 'leave';
+  // @freelancer luôn hoạt động 100%, không cần API Key
+  if (emp.id === 'freelancer' || emp.isFreeTool) return 'active';
+
   const hasKey = Boolean(emp.apiKey && emp.apiKey.trim());
   if (!hasKey) return 'leave'; // ⚪ Nghỉ phép
   if (emp.id === 'cloudflare' && (!emp.accountId || !emp.accountId.trim())) {
@@ -273,8 +311,8 @@ function getEmployeeStatus(emp) {
 }
 
 function setEmployeeOverload(empId, seconds = 60) {
-  const emp = state.employees.find((e) => e.id === empId);
-  if (!emp) return;
+  const emp = getEmpById(empId);
+  if (!emp || emp.id === 'freelancer') return;
   emp.cooldownUntil = Date.now() + seconds * 1000;
   renderSidebarEmployees();
 }
@@ -294,7 +332,7 @@ setInterval(() => {
 }, 1000);
 
 function incrementQuota(empId) {
-  const emp = state.employees.find((e) => e.id === empId);
+  const emp = getEmpById(empId);
   if (!emp) return;
   emp.quotaUsed = (emp.quotaUsed || 0) + 1;
   saveEmployeesToStorage();
@@ -317,20 +355,15 @@ function buildFullSystemPrompt(emp) {
 }
 
 // ============================================================================
-// 4. TÍCH HỢP GỌI API THẬT CHO CẢ 5 DỊCH VỤ (CÓ PROXY CHO CLOUDFLARE & COHERE)
+// 4. TÍCH HỢP GỌI API THẬT CHO CÁC DỊCH VỤ (CÓ PROXY CHO CLOUDFLARE & COHERE)
 // ============================================================================
-// Nếu app chạy trên GitHub Pages (github.io) thì dán link Cloudflare Worker vào đây,
-// ví dụ: 'https://ai-office-proxy.ten-cua-sep.workers.dev/'
-// Để trống '' nếu app chạy bằng server Node (dùng /api/proxy trong server.js).
 const WORKER_PROXY_URL = 'https://tny.qp198178.workers.dev';
 
 async function fetchWithOptionalProxy(targetUrl, options, forceProxy = false) {
-  // Groq, Gemini, Mistral gọi thẳng trực tiếp (forceProxy = false)
   if (!forceProxy) {
     return fetch(targetUrl, options);
   }
 
-  // Cohere và Cloudflare không cho trình duyệt gọi trực tiếp (CORS) nên phải qua proxy.
   if (WORKER_PROXY_URL) {
     return fetch(`${WORKER_PROXY_URL}?url=${encodeURIComponent(targetUrl)}`, options);
   }
@@ -364,7 +397,6 @@ async function callEmployeeAPI(emp, userPrompt, options = {}) {
   const imageAttachment = state.attachments.find((a) => a.type === 'image');
   const docAttachments = state.attachments.filter((a) => a.type === 'doc');
 
-  // Nếu có tài liệu đính kèm (và không phải truyền context riêng từ Pipeline), nối nội dung vào prompt
   let finalUserText = userPrompt;
   if (!options.skipAutoDocContext && docAttachments.length > 0) {
     const docsCombined = docAttachments
@@ -373,16 +405,17 @@ async function callEmployeeAPI(emp, userPrompt, options = {}) {
     finalUserText = `${docsCombined}\n\n---\nCÂU HỎI / YÊU CẦU CỦA SẾP:\n${userPrompt}`;
   }
 
-  // Nếu có ảnh mà gọi nhân viên khác ngoài @giáo_sư (Gemini), bổ sung nhắc nhở để kích hoạt quy tắc từ chối
+  // Nếu có ảnh mà gọi nhân viên khác ngoài @chuyên_gia (Gemini), bổ sung nhắc nhở để kích hoạt quy tắc từ chối
   if (imageAttachment && emp.id !== 'gemini') {
-    finalUserText = `[Hệ thống ghi nhận Sếp có đính kèm 1 hình ảnh: "${imageAttachment.name}", nhưng nền tảng của bạn không hỗ trợ thị giác máy tính]\n${finalUserText}`;
+    const geminiNick = getEmpById('gemini')?.nickname || '@chuyên_gia';
+    finalUserText = `[Hệ thống ghi nhận Sếp có đính kèm 1 hình ảnh: "${imageAttachment.name}", nhưng nền tảng của bạn không hỗ trợ thị giác máy tính. Hãy từ chối và chuyển tiếp cho ${geminiNick}]\n${finalUserText}`;
   }
 
   incrementQuota(emp.id);
 
   let response;
 
-  // --- 1. GROQ & 3. MISTRAL (OpenAI-compatible Chat Completions) ---
+  // --- 1. GROQ (@quản_lý) & 3. MISTRAL (@thư_ký) ---
   if (emp.id === 'groq' || emp.id === 'mistral') {
     response = await fetch(emp.endpoint, {
       method: 'POST',
@@ -410,9 +443,9 @@ async function callEmployeeAPI(emp, userPrompt, options = {}) {
     return data.choices?.[0]?.message?.content || 'Em chưa có câu trả lời phù hợp ạ.';
   }
 
-  // --- 2. GEMINI (Google Generative AI REST API + Vision) ---
+  // --- 2. GEMINI (@chuyên_gia) ---
   if (emp.id === 'gemini') {
-    const modelName = (emp.model || 'gemini-3.8-flash').trim();
+    const modelName = (emp.model || 'gemini-3.5-flash-lite').trim();
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(emp.apiKey.trim())}`;
 
     const parts = [{ text: finalUserText }];
@@ -454,7 +487,7 @@ async function callEmployeeAPI(emp, userPrompt, options = {}) {
     );
   }
 
-  // --- 4. COHERE V2 CHAT ---
+  // --- 4. COHERE V2 CHAT (@văn_thư) ---
   if (emp.id === 'cohere') {
     response = await fetchWithOptionalProxy(
       emp.endpoint,
@@ -489,7 +522,7 @@ async function callEmployeeAPI(emp, userPrompt, options = {}) {
     );
   }
 
-  // --- 5. CLOUDFLARE WORKERS AI ---
+  // --- 5. CLOUDFLARE WORKERS AI (@trợ_lý) ---
   if (emp.id === 'cloudflare') {
     const accountId = emp.accountId.trim();
     const modelPath = emp.model || '@cf/qwen/qwen3.8-27b';
@@ -523,16 +556,15 @@ async function callEmployeeAPI(emp, userPrompt, options = {}) {
     return (
       data.result?.response ||
       data.result?.choices?.[0]?.message?.content ||
-      'Em @đa_nhiệm đã xử lý xong yêu cầu của Sếp!'
+      `Em ${emp.nickname} đã xử lý xong yêu cầu của Sếp!`
     );
   }
 }
 
-// --- Hàm gọi Cohere Rerank API (@thủ_thư) dùng trong Phòng Phối Hợp ---
+// --- Hàm gọi Cohere Rerank API (@văn_thư) dùng trong Phòng Phối Hợp ---
 async function callCohereRerank(query, chunks) {
-  const cohereEmp = state.employees.find((e) => e.id === 'cohere');
+  const cohereEmp = getEmpById('cohere');
   if (!cohereEmp || getEmployeeStatus(cohereEmp) !== 'active') {
-    // Fallback chấm điểm từ khóa tại trình duyệt nếu @thủ_thư đang nghỉ phép
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
     const scored = chunks.map((chunk, index) => {
       const lower = chunk.toLowerCase();
@@ -579,6 +611,167 @@ async function callCohereRerank(query, chunks) {
 }
 
 // ============================================================================
+// 4B. CƠ CHẾ AUTO-CHAIN: GROQ (@quản_lý) RA LỆNH -> @freelancer THỰC THI
+// ============================================================================
+function parseFreelancerTaskTag(text) {
+  if (!text) return null;
+  const regex = /\[FREELANCER_TASK:\s*(CHART|DIAGRAM|DICT|BOOK)\s*\|\s*([\s\S]*?)\]/i;
+  const match = text.match(regex);
+  if (!match) return null;
+  return {
+    fullMatch: match[0],
+    taskType: match[1].toUpperCase(),
+    payload: match[2].trim()
+  };
+}
+
+// Mã hóa Base64 URL-safe hỗ trợ tiếng Việt Unicode cho Kroki Mermaid
+function encodeMermaidBase64UrlSafe(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  bytes.forEach((b) => (binary += String.fromCharCode(b)));
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Tải ảnh Biểu đồ / Sơ đồ về máy
+window.downloadFreelancerImage = async function (imgUrl, prefix = 'Freelancer_Chart') {
+  try {
+    const res = await fetch(imgUrl);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `${prefix}_${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch (_) {
+    window.open(imgUrl, '_blank');
+  }
+};
+
+async function executeFreelancerTaskIfPresent(replyText, originalBossQuery) {
+  const parsed = parseFreelancerTaskTag(replyText);
+  if (!parsed) return;
+
+  const freelancerEmp = getEmpById('freelancer');
+  if (!freelancerEmp) return;
+
+  // Bật hiệu ứng "🛠️ @freelancer đang thực hiện..." trong đúng 1 giây
+  showTypingIndicator(freelancerEmp, 'đang thực hiện...');
+  await new Promise((r) => setTimeout(r, 1000));
+
+  try {
+    const { taskType, payload } = parsed;
+    let reportContent = '';
+    let freelancerMeta = null;
+
+    if (taskType === 'CHART') {
+      // Làm sạch chuỗi JSON nếu AI bọc trong markdown codeblock
+      const cleanJson = payload
+        .replace(/^```(?:json)?/i, '')
+        .replace(/```$/i, '')
+        .trim();
+      const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(cleanJson)}&w=600&h=350&bkg=white`;
+      reportContent = `📊 **Báo cáo Sếp!** Em đã vẽ xong biểu đồ số liệu theo lệnh điều phối của **${getEmpById('groq')?.nickname || '@quản_lý'}**:`;
+      freelancerMeta = {
+        type: 'IMAGE',
+        title: 'Biểu đồ QuickChart',
+        imageUrl: chartUrl,
+        rawCode: cleanJson
+      };
+    } else if (taskType === 'DIAGRAM') {
+      const cleanMermaid = payload
+        .replace(/^```(?:mermaid)?/i, '')
+        .replace(/```$/i, '')
+        .replace(/\\n/g, '\n')
+        .trim();
+      const base64 = encodeMermaidBase64UrlSafe(cleanMermaid);
+      const diagramUrl = `https://kroki.io/mermaid/png/${base64}`;
+      reportContent = `📐 **Báo cáo Sếp!** Em đã thiết kế xong sơ đồ quy trình/mindmap theo yêu cầu:`;
+      freelancerMeta = {
+        type: 'IMAGE',
+        title: 'Sơ đồ Mermaid (Kroki)',
+        imageUrl: diagramUrl,
+        rawCode: cleanMermaid
+      };
+    } else if (taskType === 'DICT') {
+      const word = payload.split(/\s+/)[0].replace(/[^a-zA-Z-]/g, '');
+      const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+      if (!res.ok) {
+        reportContent = `📖 Em đã tra từ điển cho từ **"${escapeHtml(word)}"** nhưng không tìm thấy dữ liệu trong DictionaryAPI ạ.`;
+      } else {
+        const data = await res.json();
+        const entry = data[0];
+        const phonetic = entry.phonetic || (entry.phonetics?.find((p) => p.text)?.text) || '/.../';
+        const audioUrl = entry.phonetics?.find((p) => p.audio && p.audio.trim())?.audio || '';
+
+        const meaningsHtml = (entry.meanings || [])
+          .slice(0, 3)
+          .map((m) => {
+            const defs = (m.definitions || [])
+              .slice(0, 2)
+              .map((d) => `• ${d.definition}${d.example ? `\n  *(VD: "${d.example}")*` : ''}`)
+              .join('\n');
+            return `**Loại từ (${m.partOfSpeech}):**\n${defs}`;
+          })
+          .join('\n\n');
+
+        reportContent = `📖 **Kết quả tra từ điển tiếng Anh cho từ: \`${entry.word}\`**\n- **Phiên âm:** \`${phonetic}\`\n\n${meaningsHtml}`;
+        freelancerMeta = {
+          type: 'DICT',
+          word: entry.word,
+          phonetic,
+          audioUrl
+        };
+      }
+    } else if (taskType === 'BOOK') {
+      const res = await fetch(
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(payload)}&maxResults=3`
+      );
+      if (!res.ok) {
+        reportContent = `📚 Em không kết nối được kho Google Books lúc này ạ.`;
+      } else {
+        const data = await res.json();
+        const items = data.items || [];
+        if (items.length === 0) {
+          reportContent = `📚 Em đã tìm thử với từ khóa **"${escapeHtml(payload)}"** nhưng chưa thấy đầu sách nào khớp ạ.`;
+        } else {
+          const booksList = items.map((item, idx) => {
+            const info = item.volumeInfo || {};
+            const title = info.title || 'Không rõ tên sách';
+            const authors = (info.authors || ['Không rõ tác giả']).join(', ');
+            const published = (info.publishedDate || 'N/A').slice(0, 4);
+            const link = info.infoLink || '#';
+            const thumb = info.imageLinks?.thumbnail?.replace('http://', 'https://') || '';
+            const desc = info.description
+              ? info.description.slice(0, 140) + '...'
+              : 'Chưa có mô tả tóm tắt.';
+            return { idx: idx + 1, title, authors, published, link, thumb, desc };
+          });
+
+          reportContent = `📚 **Báo cáo Sếp!** Em tìm được **${booksList.length} đầu sách tham khảo** cho từ khóa **"${escapeHtml(payload)}"**:`;
+          freelancerMeta = {
+            type: 'BOOK',
+            books: booksList
+          };
+        }
+      }
+    }
+
+    incrementQuota('freelancer');
+    hideTypingIndicator();
+    appendAIMessage(freelancerEmp, reportContent, originalBossQuery, {
+      freelancerMeta
+    });
+  } catch (err) {
+    hideTypingIndicator();
+    appendSystemMessage(`⚠️ **@freelancer** gặp lỗi khi thực thi công cụ: ${err.message}`);
+  }
+}
+
+// ============================================================================
 // 5. CƠ CHẾ TỰ ĐỘNG LÀM THAY (AUTO-FALLBACK KHI LỖI 429 / MẠNG / SAI MODEL)
 // ============================================================================
 async function executeWithAutoFallback(targetEmp, userPrompt, options = {}) {
@@ -590,13 +783,10 @@ async function executeWithAutoFallback(targetEmp, userPrompt, options = {}) {
   } catch (error) {
     hideTypingIndicator();
 
-    // 404 / 400 thường do tên model sai hoặc đã bị ngừng -> KHÔNG phải quá tải,
-    // không nên phạt "uống trà đá 60s" mà báo rõ để Sếp sửa tên model.
     const isModelError = error.status === 404 || error.status === 400;
     const isRateLimit = error.status === 429;
 
     if (!isModelError) {
-      // Đặt trạng thái Quá tải (Đi uống trà đá 60s)
       setEmployeeOverload(targetEmp.id, 60);
     }
 
@@ -611,8 +801,8 @@ async function executeWithAutoFallback(targetEmp, userPrompt, options = {}) {
       `⚠️ **${targetEmp.nickname}** gặp sự cố (${reasonText}). Đang tìm nhân viên dự bị làm thay...`
     );
 
-    // Ưu tiên @đa_nhiệm (Cloudflare), nếu nghỉ phép thì tìm đồng nghiệp khác đang active
-    const cloudflareEmp = state.employees.find((e) => e.id === 'cloudflare');
+    // Ưu tiên @trợ_lý (Cloudflare), nếu nghỉ phép thì tìm đồng nghiệp AI khác đang active (trừ @freelancer)
+    const cloudflareEmp = getEmpById('cloudflare');
     let backupEmp = null;
 
     if (
@@ -623,7 +813,7 @@ async function executeWithAutoFallback(targetEmp, userPrompt, options = {}) {
       backupEmp = cloudflareEmp;
     } else {
       backupEmp = state.employees.find(
-        (e) => e.id !== targetEmp.id && getEmployeeStatus(e) === 'active'
+        (e) => e.id !== targetEmp.id && !e.isFreeTool && getEmployeeStatus(e) === 'active'
       );
     }
 
@@ -736,6 +926,7 @@ function renderAttachmentBadges() {
     return;
   }
 
+  const geminiNick = getEmpById('gemini')?.nickname || '@chuyên_gia';
   bar.classList.remove('hidden');
   bar.classList.add('flex');
   bar.innerHTML = state.attachments
@@ -751,7 +942,7 @@ function renderAttachmentBadges() {
       return `
         <div class="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-500 text-xs font-medium">
           <img src="${att.previewUrl}" class="w-7 h-7 rounded object-cover border border-blue-400/40" />
-          <span>🖼️ <b>${escapeHtml(att.name)}</b> (Gửi @giáo_sư Vision)</span>
+          <span>🖼️ <b>${escapeHtml(att.name)}</b> (Gửi ${escapeHtml(geminiNick)} Vision)</span>
           <button onclick="removeAttachment(${idx})" class="hover:text-rose-500 font-bold ml-1">✕</button>
         </div>
       `;
@@ -877,10 +1068,10 @@ async function transcribeAudioBlob(audioBlob) {
   const oldPlaceholder = chatInput.placeholder;
   chatInput.placeholder = '🎙️ Đang nhận diện giọng nói tiếng Việt qua Whisper...';
 
-  const groqEmp = state.employees.find((e) => e.id === 'groq');
-  const cfEmp = state.employees.find((e) => e.id === 'cloudflare');
+  const groqEmp = getEmpById('groq');
+  const cfEmp = getEmpById('cloudflare');
 
-  // 1. Thử gọi Groq Whisper (model lấy từ cấu hình audioModel)
+  // 1. Thử gọi Groq Whisper
   if (groqEmp && getEmployeeStatus(groqEmp) === 'active') {
     try {
       incrementQuota('groq');
@@ -905,15 +1096,13 @@ async function transcribeAudioBlob(audioBlob) {
           chatInput.focus();
           return;
         }
-      } else {
-        console.warn(`Groq Whisper trả lỗi ${res.status}, chuyển sang Cloudflare Whisper`);
       }
     } catch (e) {
       console.warn('Groq Whisper lỗi, chuyển sang Cloudflare Whisper:', e);
     }
   }
 
-  // 2. Fallback sang Cloudflare Whisper (@cf/openai/whisper)
+  // 2. Fallback sang Cloudflare Whisper
   if (cfEmp && getEmployeeStatus(cfEmp) === 'active') {
     try {
       incrementQuota('cloudflare');
@@ -950,7 +1139,7 @@ async function transcribeAudioBlob(audioBlob) {
 
   chatInput.placeholder = oldPlaceholder;
   alert(
-    'Không thể nhận diện giọng nói! Sếp hãy cấp API Key cho @quản lý (Groq) hoặc @đa_nhiệm (Cloudflare) để dùng tính năng nghe băng ghi âm nhé.'
+    `Không thể nhận diện giọng nói! Sếp hãy cấp API Key cho ${groqEmp?.nickname || '@quản_lý'} (Groq) hoặc ${cfEmp?.nickname || '@trợ_lý'} (Cloudflare) để dùng tính năng nghe băng ghi âm nhé.`
   );
 }
 
@@ -958,31 +1147,88 @@ async function transcribeAudioBlob(audioBlob) {
 // 8. LOGIC 3 PHÒNG LÀM VIỆC (DIRECT CALL, PIPELINE, 3-TURN DEBATE)
 // ============================================================================
 
+// Nhận diện nhanh khi Sếp yêu cầu vẽ biểu đồ, sơ đồ, tra từ điển, tìm sách hoặc gọi @freelancer
+function isFreelancerRequest(text) {
+  const lower = text.toLowerCase();
+  const freelancerNick = (getEmpById('freelancer')?.nickname || '@freelancer').toLowerCase();
+  if (lower.includes(freelancerNick)) return true;
+
+  const keywords = [
+    'vẽ biểu đồ',
+    'biểu đồ',
+    'chart',
+    'vẽ sơ đồ',
+    'sơ đồ khối',
+    'mindmap',
+    'sơ đồ tư duy',
+    'mermaid',
+    'flowchart',
+    'tra từ điển',
+    'phiên âm từ',
+    'nghĩa của từ',
+    'tìm sách',
+    'sách tham khảo'
+  ];
+  return keywords.some((kw) => lower.includes(kw));
+}
+
 // --- PHÒNG 1: PHÒNG GỌI RIÊNG (DIRECT CALL) ---
 async function handleDirectRoomSubmit(userText) {
-  // Tìm xem Sếp có tag @biệt_danh nào không
+  const groqEmp = getEmpById('groq');
+  const lowerText = userText.toLowerCase();
+
+  // Tìm xem Sếp có tag @biệt_danh nào không (hỗ trợ cả có dấu gạch dưới và khoảng trắng)
   let mentionedEmp = null;
   for (const emp of state.employees) {
-    if (userText.toLowerCase().includes(emp.nickname.toLowerCase())) {
+    const nick1 = emp.nickname.toLowerCase();
+    const nick2 = nick1.replace(/_/g, ' ');
+    if (lowerText.includes(nick1) || lowerText.includes(nick2)) {
       mentionedEmp = emp;
       break;
     }
   }
 
-  // Nếu không tag ai -> Mặc định @quản lý lên tiếng
+  // Nếu Sếp gọi trực tiếp @freelancer hoặc yêu cầu vẽ biểu đồ/sơ đồ/từ điển/sách mà không tag chuyên gia khác
+  if ((mentionedEmp && mentionedEmp.id === 'freelancer') || (!mentionedEmp && isFreelancerRequest(userText))) {
+    if (getEmployeeStatus(groqEmp) === 'leave' && !state.employees.some((e) => !e.isFreeTool && getEmployeeStatus(e) === 'active')) {
+      openLeaveAlertModal(groqEmp, userText);
+      return;
+    }
+
+    const commandPrompt = `Sếp yêu cầu: "${userText}".
+Hãy trả lời Sếp thật ngắn gọn (1-2 câu) với tư cách ${groqEmp.nickname} và lập tức giao việc cho @freelancer bằng ĐÚNG 1 thẻ lệnh ở cuối câu trả lời:
+- Nếu vẽ biểu đồ số liệu: [FREELANCER_TASK: CHART | <Chuỗi JSON cấu hình Chart.js hợp lệ trên 1 dòng, dùng dấu nháy kép chuẩn>]
+- Nếu vẽ sơ đồ khối/mindmap/quy trình: [FREELANCER_TASK: DIAGRAM | <Mã Mermaid.js hợp lệ, ví dụ: graph TD; A-->B;>]
+- Nếu tra từ điển tiếng Anh: [FREELANCER_TASK: DICT | <từ_tiếng_Anh_cần_tra>]
+- Nếu tìm sách tham khảo: [FREELANCER_TASK: BOOK | <từ_khóa_sách>]`;
+
+    const result = await executeWithAutoFallback(groqEmp, commandPrompt);
+    appendAIMessage(result.employee, result.reply, userText, {
+      isFallback: result.isFallback,
+      replacedNickname: result.replacedNickname
+    });
+    await executeFreelancerTaskIfPresent(result.reply, userText);
+    return;
+  }
+
+  // Nếu không tag ai -> Mặc định @quản_lý (Groq) lên tiếng điều phối
   if (!mentionedEmp) {
-    const groqEmp = state.employees.find((e) => e.id === 'groq');
     if (getEmployeeStatus(groqEmp) === 'active') {
-      const receptionPrompt = `Sếp vừa nhắn vào Phòng Gọi Riêng mà quên chưa tag @biệt_danh nhân viên cụ thể: "${userText}".
-Với vai trò Lễ tân kiêm Điều phối viên (@tốc_độ), nếu việc này nhỏ gọn trong tầm tay em thì trả lời nhanh giúp Sếp, đồng thời hỏi Sếp có muốn gọi chuyên gia nào (như @giáo_sư, @thư_ký, @thủ_thư) hỗ trợ sâu hơn không.`;
+      const profNick = getEmpById('gemini')?.nickname || '@chuyên_gia';
+      const secNick = getEmpById('mistral')?.nickname || '@thư_ký';
+      const libNick = getEmpById('cohere')?.nickname || '@văn_thư';
+
+      const receptionPrompt = `Sếp vừa nhắn vào Phòng Gọi Riêng mà chưa tag tên nhân viên cụ thể: "${userText}".
+Với vai trò Quản lý kiêm Điều phối viên (${groqEmp.nickname}), nếu việc này nhỏ gọn hoặc cần sai @freelancer (vẽ biểu đồ/sơ đồ/tra từ/tìm sách) thì em xử lý luôn giúp Sếp; đồng thời hỏi Sếp có muốn gọi ${profNick}, ${secNick}, hay ${libNick} hỗ trợ sâu hơn không.`;
       const result = await executeWithAutoFallback(groqEmp, receptionPrompt);
       appendAIMessage(result.employee, result.reply, userText, {
         isFallback: result.isFallback,
         replacedNickname: result.replacedNickname
       });
+      await executeFreelancerTaskIfPresent(result.reply, userText);
     } else {
       appendSystemMessage(
-        `👋 Sếp chưa tag tên nhân viên nào (ví dụ: **@giáo_sư**, **@thư_ký**). Hiện tại lễ tân **${groqEmp.nickname}** cũng đang nghỉ phép (chưa có API Key). Sếp hãy click vào nhân viên bên cột trái để cấp API Key hoặc gõ **@** để chọn người nhé!`
+        `👋 Sếp chưa tag tên nhân viên nào (ví dụ: **@chuyên_gia**, **@thư_ký**, **@freelancer**). Hiện tại **${groqEmp.nickname}** cũng đang nghỉ phép (chưa có API Key). Sếp hãy click vào nhân viên bên cột trái để cấp API Key hoặc gõ **@** để chọn người nhé!`
       );
     }
     return;
@@ -999,6 +1245,7 @@ Với vai trò Lễ tân kiêm Điều phối viên (@tốc_độ), nếu việc
     isFallback: result.isFallback,
     replacedNickname: result.replacedNickname
   });
+  await executeFreelancerTaskIfPresent(result.reply, userText);
 }
 
 // --- PHÒNG 2: PHÒNG PHỐI HỢP (WORKFLOW / PIPELINE ROOM) ---
@@ -1033,14 +1280,16 @@ async function handlePipelineRoomSubmit(userText) {
   setPipelineStepStatus(3, 'idle');
 
   const docAttachments = state.attachments.filter((a) => a.type === 'doc');
+  const librarian = getEmpById('cohere');
+  const groqEmp = getEmpById('groq');
+  const profEmp = getEmpById('gemini');
+  const secEmp = getEmpById('mistral');
+
   let topChunksContext = '';
 
-  // BƯỚC 1: Lọc tài liệu qua @thủ_thư (Cohere Rerank) nếu có file đính kèm
-  setPipelineStepStatus(1, 'active');
+  // BƯỚC 1: Lọc tài liệu qua @văn_thư (Cohere Rerank)
   if (docAttachments.length > 0) {
-    const librarian = state.employees.find((e) => e.id === 'cohere');
     showTypingIndicator(librarian, 'đang bóc tách chunks & chấm điểm Rerank...');
-
     const allText = docAttachments.map((d) => d.text).join('\n\n');
     const chunks = splitTextIntoChunks(allText, 160);
 
@@ -1059,19 +1308,15 @@ async function handlePipelineRoomSubmit(userText) {
     } catch (e) {
       hideTypingIndicator();
       topChunksContext = chunks.slice(0, 3).join('\n\n');
-      appendSystemMessage(`⚠️ Lỗi Rerank từ @thủ_thư (${e.message}), tự động lấy 3 đoạn đầu tiên.`);
+      appendSystemMessage(`⚠️ Lỗi Rerank từ ${librarian.nickname} (${e.message}), tự động lấy 3 đoạn đầu tiên.`);
     }
   } else {
-    appendSystemMessage('ℹ️ **Bước 1:** Không có tài liệu đính kèm, bỏ qua bước lọc Rerank của @thủ_thư.');
+    appendSystemMessage(`ℹ️ **Bước 1:** Không có tài liệu đính kèm, bỏ qua bước lọc Rerank của ${librarian.nickname}.`);
   }
   setPipelineStepStatus(1, 'done');
 
-  // BƯỚC 2: @tốc_độ (Groq) phân tích JSON giao việc cho @giáo_sư hay @thư_ký
+  // BƯỚC 2: @quản_lý (Groq) phân tích JSON giao việc cho @chuyên_gia hay @thư_ký
   setPipelineStepStatus(2, 'active');
-  const groqEmp = state.employees.find((e) => e.id === 'groq');
-  const profEmp = state.employees.find((e) => e.id === 'gemini');
-  const secEmp = state.employees.find((e) => e.id === 'mistral');
-
   let chosenSpecialist = profEmp;
   let routingReason = 'Yêu cầu cần phân tích chuyên sâu.';
 
@@ -1080,7 +1325,7 @@ Hãy phân tích xem nhiệm vụ này nên giao cho "${profEmp.nickname}" (Chuy
 CHỈ TRẢ VỀ ĐÚNG 1 CHUỖI JSON HỢP LỆ THEO MẪU SAU, KHÔNG GIẢI THÍCH THÊM:
 {"assignee": "${profEmp.nickname}", "reason": "Lý do ngắn gọn 1 câu"}`;
 
-  if (getEmployeeStatus(groqEmp) === 'active' || state.employees.some((e) => getEmployeeStatus(e) === 'active')) {
+  if (getEmployeeStatus(groqEmp) === 'active' || state.employees.some((e) => !e.isFreeTool && getEmployeeStatus(e) === 'active')) {
     try {
       const routeRes = await executeWithAutoFallback(groqEmp, routingPrompt, {
         skipAutoDocContext: true,
@@ -1110,12 +1355,11 @@ CHỈ TRẢ VỀ ĐÚNG 1 CHUỖI JSON HỢP LỆ THEO MẪU SAU, KHÔNG GIẢI 
   // BƯỚC 3: Nhân viên được chọn thực thi hoàn chỉnh
   setPipelineStepStatus(3, 'active');
   const finalExecutionPrompt = topChunksContext
-    ? `Dưới đây là Top 3 đoạn tài liệu quan trọng nhất do @thủ_thư lọc ra:\n${topChunksContext}\n\n---\nYÊU CẦU CỦA SẾP: ${userText}\nHãy hoàn thành xuất sắc nhiệm vụ này cho Sếp.`
+    ? `Dưới đây là Top 3 đoạn tài liệu quan trọng nhất do ${librarian.nickname} lọc ra:\n${topChunksContext}\n\n---\nYÊU CẦU CỦA SẾP: ${userText}\nHãy hoàn thành xuất sắc nhiệm vụ này cho Sếp.`
     : userText;
 
   if (getEmployeeStatus(chosenSpecialist) === 'leave') {
-    // Nếu chuyên gia chính nghỉ phép, nhờ người khác đang active làm thay
-    const fallbackTarget = state.employees.find((e) => getEmployeeStatus(e) === 'active');
+    const fallbackTarget = state.employees.find((e) => !e.isFreeTool && getEmployeeStatus(e) === 'active');
     if (!fallbackTarget) {
       openLeaveAlertModal(chosenSpecialist, finalExecutionPrompt);
       return;
@@ -1159,15 +1403,14 @@ function waitForBossDecisionBetweenTurns(turnCompleted) {
 }
 
 async function handleDebateRoomSubmit(userText) {
-  const groqEmp = state.employees.find((e) => e.id === 'groq');
-  const secEmp = state.employees.find((e) => e.id === 'mistral');
-  const profEmp = state.employees.find((e) => e.id === 'gemini');
+  const groqEmp = getEmpById('groq');
+  const secEmp = getEmpById('mistral');
+  const profEmp = getEmpById('gemini');
 
-  // Chọn người mở màn Hiệp 1 (@thư_ký hoặc @tốc_độ)
   const proposer = getEmployeeStatus(secEmp) === 'active' ? secEmp : groqEmp;
 
-  if (!state.employees.some((e) => getEmployeeStatus(e) === 'active')) {
-    appendSystemMessage('⚠️ Chưa có nhân viên nào được cấp API Key để mở phiên tranh luận!');
+  if (!state.employees.some((e) => !e.isFreeTool && getEmployeeStatus(e) === 'active')) {
+    appendSystemMessage('⚠️ Chưa có nhân viên AI nào được cấp API Key để mở phiên tranh luận!');
     return;
   }
 
@@ -1189,7 +1432,6 @@ async function handleDebateRoomSubmit(userText) {
     replacedNickname: turn1Res.replacedNickname
   });
 
-  // Tạm dừng chờ Sếp Gõ Búa hoặc Tiếp tục sang Hiệp 2
   const decision1 = await waitForBossDecisionBetweenTurns(1);
   controls.classList.add('hidden');
 
@@ -1200,7 +1442,7 @@ async function handleDebateRoomSubmit(userText) {
     return;
   }
 
-  // --- HIỆP 2: PHẢN BIỆN - VẠCH LÁ TÌM SÂU (@giáo_sư) ---
+  // --- HIỆP 2: PHẢN BIỆN - VẠCH LÁ TÌM SÂU (@chuyên_gia) ---
   badge.textContent = 'HIỆP 2/3 - PHẢN BIỆN';
   statusText.textContent = `${profEmp.nickname} đang vạch lá tìm sâu phương án Hiệp 1...`;
 
@@ -1224,7 +1466,6 @@ Hãy đóng vai người phản biện khó tính, chỉ ra 3 lỗ hổng logic,
     replacedNickname: turn2Res.replacedNickname
   });
 
-  // Tạm dừng chờ Sếp Gõ Búa hoặc Tiếp tục sang Hiệp 3
   const decision2 = await waitForBossDecisionBetweenTurns(2);
   controls.classList.add('hidden');
 
@@ -1251,7 +1492,7 @@ Hãy đóng vai người phản biện khó tính, chỉ ra 3 lỗ hổng logic,
 ${turn1Res.reply}
 
 ---
-[PHẢN BIỆN HIỆP 2 CỦA @giáo_sư]:
+[PHẢN BIỆN HIỆP 2 CỦA ${profEmp.nickname}]:
 ${turn2Res.reply}
 ${bossNote2}
 
@@ -1276,7 +1517,7 @@ NHIỆM VỤ HIỆP 3 (CHỐT HẠ): Hãy tổng hợp toàn bộ ưu điểm c�
 }
 
 // ============================================================================
-// 9. HIỂN THỊ TIN NHẮN, BẮT TAG [CHUYỂN_TIẾP: @tên] & THANH CÔNG CỤ
+// 9. HIỂN THỊ TIN NHẮN, BẮT TAG [CHUYỂN_TIẾP] & [FREELANCER_TASK]
 // ============================================================================
 function escapeHtml(str = '') {
   return String(str)
@@ -1322,6 +1563,16 @@ function appendAIMessage(employee, replyText, originalBossQuery, meta = {}) {
   const match = replyText.match(forwardRegex);
   const forwardTarget = match ? match[1].trim() : null;
 
+  // Quét Regex bắt tag [FREELANCER_TASK: LOẠI | DỮ_LIỆU] để thu gọn code thô
+  const freelancerTask = parseFreelancerTaskTag(replyText);
+  let cleanContent = replyText;
+  if (freelancerTask) {
+    cleanContent = replyText.replace(freelancerTask.fullMatch, '').trim();
+    if (!cleanContent) {
+      cleanContent = `Dạ Sếp, để em bàn giao ngay yêu cầu này cho **@freelancer** thực thi nhé!`;
+    }
+  }
+
   const msg = {
     id: 'ai_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
     sender: 'ai',
@@ -1330,7 +1581,9 @@ function appendAIMessage(employee, replyText, originalBossQuery, meta = {}) {
     employeeRole: employee.role,
     employeeColor: employee.color,
     employeeAvatar: employee.avatarText,
-    content: replyText,
+    content: cleanContent,
+    rawFreelancerTask: freelancerTask,
+    freelancerMeta: meta.freelancerMeta || null,
     originalQuery: originalBossQuery,
     forwardTarget,
     isFallback: Boolean(meta.isFallback),
@@ -1341,6 +1594,70 @@ function appendAIMessage(employee, replyText, originalBossQuery, meta = {}) {
   state.messagesByRoom[state.currentRoom].push(msg);
   saveRoomMessagesToDB(state.currentRoom);
   renderChatMessages();
+}
+
+function renderFreelancerResultHtml(meta) {
+  if (!meta) return '';
+
+  // 1. Hiển thị ảnh Biểu đồ (QuickChart) hoặc Sơ đồ (Kroki Mermaid) kèm nút Tải ảnh về
+  if (meta.type === 'IMAGE') {
+    return `
+      <div class="mt-3 p-3 rounded-xl bg-slate-50 dark:bg-[#141720] border border-slate-200 dark:border-[#2a2f3d] space-y-2.5">
+        <div class="bg-white rounded-lg p-2 flex items-center justify-center overflow-hidden border border-slate-200">
+          <img src="${meta.imageUrl}" alt="${escapeHtml(meta.title)}" class="max-h-96 w-auto object-contain rounded" />
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-[11px] text-slate-400">✨ Render trực tiếp bởi @freelancer (${escapeHtml(meta.title)})</span>
+          <button
+            onclick="downloadFreelancerImage('${meta.imageUrl}', '${escapeHtml(meta.title.replace(/\s+/g, '_'))}')"
+            class="px-3 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition"
+          >
+            ⬇️ Tải ảnh về
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // 2. Hiển thị nút nghe phát âm Từ điển tiếng Anh
+  if (meta.type === 'DICT' && meta.audioUrl) {
+    return `
+      <div class="mt-3 p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-between">
+        <span class="text-xs font-medium text-indigo-400">🔊 Nghe phát âm chuẩn (${escapeHtml(meta.word)}):</span>
+        <audio controls src="${meta.audioUrl}" class="h-8 w-48"></audio>
+      </div>
+    `;
+  }
+
+  // 3. Hiển thị danh sách thẻ Sách từ Google Books API
+  if (meta.type === 'BOOK' && Array.isArray(meta.books)) {
+    const cards = meta.books
+      .map(
+        (b) => `
+        <div class="flex gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-[#141720] border border-slate-200 dark:border-[#2a2f3d]">
+          ${
+            b.thumb
+              ? `<img src="${b.thumb}" class="w-14 h-20 object-cover rounded shadow shrink-0" />`
+              : `<div class="w-14 h-20 rounded bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-lg shrink-0">📘</div>`
+          }
+          <div class="flex-1 min-w-0">
+            <a href="${b.link}" target="_blank" rel="noopener" class="font-bold text-xs text-indigo-500 hover:underline line-clamp-1">
+              ${b.idx}. ${escapeHtml(b.title)}
+            </a>
+            <div class="text-[11px] text-slate-400 mt-0.5">
+              ✍️ Tác giả: <b>${escapeHtml(b.authors)}</b> • 📅 Năm: <b>${escapeHtml(b.published)}</b>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">${escapeHtml(b.desc)}</p>
+          </div>
+        </div>
+      `
+      )
+      .join('');
+
+    return `<div class="mt-3 space-y-2">${cards}</div>`;
+  }
+
+  return '';
 }
 
 function renderChatMessages() {
@@ -1355,7 +1672,7 @@ function renderChatMessages() {
         </div>
         <h3 class="font-bold text-sm mb-1">Chào mừng Sếp đến với AI Office!</h3>
         <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-          Hãy click vào các nhân viên ở cột bên trái để cấp <b>API Key</b>. Gõ <b>@</b> trong ô chat để gọi đích danh nhân viên hoặc đính kèm file <b>.pdf / .docx</b> (bóc chữ tốn 0 API).
+          Gõ <b>@quản_lý</b>, <b>@chuyên_gia</b>, <b>@thư_ký</b>, <b>@văn_thư</b>, <b>@trợ_lý</b> hoặc sai <b>@freelancer</b> vẽ biểu đồ, sơ đồ, tra từ điển, tìm sách (tốn 0 Key)!
         </p>
       </div>
     `;
@@ -1407,6 +1724,21 @@ function renderChatMessages() {
         ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium">🔄 Làm thay cho ${escapeHtml(m.replacedNickname)}</span>`
         : '';
 
+      // Thẻ thu gọn lệnh kỹ thuật mà @quản_lý giao cho @freelancer
+      const collapsedTaskHtml = m.rawFreelancerTask
+        ? `
+          <details class="mt-2.5 text-[11px] bg-slate-100 dark:bg-[#141720] border border-slate-200 dark:border-[#2a2f3d] rounded-xl px-3 py-1.5">
+            <summary class="cursor-pointer font-semibold text-pink-500 select-none">
+              🛠️ Lệnh kỹ thuật đã bàn giao cho @freelancer (${escapeHtml(m.rawFreelancerTask.taskType)})
+            </summary>
+            <pre class="mt-1.5 text-[10px] overflow-x-auto text-slate-500 dark:text-slate-400 whitespace-pre-wrap">${escapeHtml(m.rawFreelancerTask.payload)}</pre>
+          </details>
+        `
+        : '';
+
+      // Kết quả trực quan của @freelancer (Biểu đồ, Sơ đồ, Từ điển, Sách)
+      const freelancerRichHtml = renderFreelancerResultHtml(m.freelancerMeta);
+
       // Nút tự động hiển thị khi phát hiện tag [CHUYỂN_TIẾP: @tên]
       const autoForwardBtn = m.forwardTarget
         ? `
@@ -1423,7 +1755,7 @@ function renderChatMessages() {
 
       // Menu Đá việc chủ động
       const otherEmployeesOptions = state.employees
-        .filter((e) => e.id !== m.employeeId)
+        .filter((e) => e.id !== m.employeeId && !e.isFreeTool)
         .map(
           (e) =>
             `<option value="${escapeHtml(e.nickname)}">Đá việc sang ${escapeHtml(e.nickname)} (${escapeHtml(e.name)})</option>`
@@ -1449,6 +1781,8 @@ function renderChatMessages() {
               ${renderedMarkdown}
             </div>
 
+            ${collapsedTaskHtml}
+            ${freelancerRichHtml}
             ${autoForwardBtn}
 
             <!-- Thanh công cụ dưới mỗi tin nhắn AI -->
@@ -1496,9 +1830,13 @@ window.forwardTaskToEmployee = async function (msgId, targetNickname) {
   const msg = findMessageById(msgId);
   if (!msg) return;
 
+  const cleanTarget = targetNickname.trim().toLowerCase();
   const targetEmp = state.employees.find(
-    (e) => e.nickname.toLowerCase() === targetNickname.toLowerCase()
+    (e) =>
+      e.nickname.toLowerCase() === cleanTarget ||
+      e.nickname.toLowerCase().replace(/_/g, ' ') === cleanTarget.replace(/_/g, ' ')
   );
+
   if (!targetEmp) {
     alert(`Không tìm thấy nhân viên có biệt danh ${targetNickname}`);
     return;
@@ -1516,6 +1854,7 @@ window.forwardTaskToEmployee = async function (msgId, targetNickname) {
     isFallback: result.isFallback,
     replacedNickname: result.replacedNickname
   });
+  await executeFreelancerTaskIfPresent(result.reply, msg.originalQuery);
 };
 
 // ============================================================================
@@ -1544,7 +1883,9 @@ function renderSidebarEmployees() {
       let badgeHtml = '';
       let cardOpacity = '';
 
-      if (status === 'active') {
+      if (emp.id === 'freelancer' || emp.isFreeTool) {
+        badgeHtml = `<span class="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">🟢 Đang hoạt động (0 tốn Key)</span>`;
+      } else if (status === 'active') {
         badgeHtml = `<span class="text-[10px] text-emerald-500 font-medium flex items-center gap-1">🟢 Đang hoạt động</span>`;
       } else if (status === 'leave') {
         badgeHtml = `<span class="text-[10px] text-slate-400 font-medium flex items-center gap-1">⚪ Nghỉ phép (Chưa có Key)</span>`;
@@ -1554,7 +1895,13 @@ function renderSidebarEmployees() {
         badgeHtml = `<span class="text-[10px] text-amber-500 font-semibold flex items-center gap-1">🟠 Uống trà đá (${remain}s)</span>`;
       }
 
-      const percent = Math.min(100, Math.round(((emp.quotaUsed || 0) / (emp.quotaLimit || 200)) * 100));
+      const isUnlimited = emp.id === 'freelancer' || emp.isFreeTool;
+      const percent = isUnlimited
+        ? 100
+        : Math.min(100, Math.round(((emp.quotaUsed || 0) / (emp.quotaLimit || 200)) * 100));
+      const quotaLabel = isUnlimited
+        ? `${emp.quotaUsed || 0} / ∞ (Miễn phí)`
+        : `${emp.quotaUsed || 0}/${emp.quotaLimit || 200} lượt`;
 
       return `
         <div
@@ -1579,10 +1926,10 @@ function renderSidebarEmployees() {
           <div class="mt-2 pt-1.5 border-t border-slate-200/60 dark:border-[#2a2f3d]">
             <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
               <span>Thể lực (Quota ngày)</span>
-              <span class="font-semibold text-slate-600 dark:text-slate-300">${emp.quotaUsed || 0}/${emp.quotaLimit || 200} lượt</span>
+              <span class="font-semibold text-slate-600 dark:text-slate-300">${quotaLabel}</span>
             </div>
             <div class="w-full h-1.5 bg-slate-200 dark:bg-[#12151e] rounded-full overflow-hidden">
-              <div class="h-full bg-indigo-500 transition-all duration-300" style="width: ${percent}%"></div>
+              <div class="h-full ${isUnlimited ? 'bg-emerald-500' : 'bg-indigo-500'} transition-all duration-300" style="width: ${percent}%"></div>
             </div>
           </div>
         </div>
@@ -1593,7 +1940,7 @@ function renderSidebarEmployees() {
 
 // --- Modal Hồ Sơ Nhân Viên ---
 window.openEmployeeModal = function (empId) {
-  const emp = state.employees.find((e) => e.id === empId);
+  const emp = getEmpById(empId);
   if (!emp) return;
   state.editingEmployeeId = empId;
 
@@ -1604,7 +1951,12 @@ window.openEmployeeModal = function (empId) {
 
   document.getElementById('modalNickname').value = emp.nickname;
   document.getElementById('modalModel').value = emp.model;
-  document.getElementById('modalApiKey').value = emp.apiKey || '';
+  document.getElementById('modalApiKey').value = emp.isFreeTool ? '' : (emp.apiKey || '');
+  document.getElementById('modalApiKey').disabled = Boolean(emp.isFreeTool);
+  document.getElementById('modalApiKey').placeholder = emp.isFreeTool
+    ? '🟢 Nhân viên @freelancer hoạt động miễn phí, không cần nhập API Key!'
+    : 'Nhập API Key để kích hoạt nhân viên...';
+
   document.getElementById('modalAccountId').value = emp.accountId || '';
   document.getElementById('modalQuotaLimit').value = emp.quotaLimit || 200;
   document.getElementById('modalSystemPrompt').value = emp.systemPrompt || emp.defaultPrompt;
@@ -1631,8 +1983,9 @@ function closeEmployeeModal() {
 // --- Modal Cảnh báo gọi nhầm người đang Nghỉ phép ---
 function openLeaveAlertModal(emp, pendingQuery) {
   state.pendingLeaveContext = { emp, pendingQuery };
+  const assistantNick = getEmpById('cloudflare')?.nickname || '@trợ_lý';
   document.getElementById('leaveModalTitle').textContent = `${emp.nickname} đang nghỉ phép!`;
-  document.getElementById('leaveModalDesc').innerHTML = `Nhân viên <b>${escapeHtml(emp.nickname)} (${escapeHtml(emp.name)})</b> hiện chưa được cấp API Key nên đang trong trạng thái ⚪ <b>Nghỉ phép</b>. Sếp muốn cấp Key ngay hay nhờ <b>@đa_nhiệm</b> (hoặc đồng nghiệp khác) làm thay?`;
+  document.getElementById('leaveModalDesc').innerHTML = `Nhân viên <b>${escapeHtml(emp.nickname)} (${escapeHtml(emp.name)})</b> hiện chưa được cấp API Key nên đang trong trạng thái ⚪ <b>Nghỉ phép</b>. Sếp muốn cấp Key ngay hay nhờ <b>${escapeHtml(assistantNick)}</b> (hoặc đồng nghiệp khác) làm thay?`;
 
   const modal = document.getElementById('leaveAlertModal');
   modal.classList.remove('hidden');
@@ -1736,7 +2089,6 @@ async function handleSendAction() {
     hideTypingIndicator();
     appendSystemMessage(`❌ **Lỗi thực thi:** ${err.message}`);
   } finally {
-    // Xóa file đính kèm sau khi đã gửi xong lượt
     state.attachments = [];
     renderAttachmentBadges();
   }
@@ -1756,11 +2108,11 @@ function switchRoom(roomId) {
   debateBar.classList.toggle('hidden', roomId !== 'debate');
 
   if (roomId === 'direct') {
-    subtitle.innerHTML = `<i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i><span>Gõ <b>@</b> để giao việc trực tiếp. </span>`;
+    subtitle.innerHTML = `<i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i><span>Gõ <b>@</b> để giao việc trực tiếp. Không tag ai mặc định <b>@quản_lý</b> sẽ điều phối (hoặc sai <b>@freelancer</b>).</span>`;
   } else if (roomId === 'pipeline') {
-    subtitle.innerHTML = `<i data-lucide="git-merge" class="w-3.5 h-3.5 text-indigo-400"></i><span>Tự động chạy 3 bước:  lọc Rerank &rarr;  chia việc JSON &rarr; Chuyên gia thực thi.</span>`;
+    subtitle.innerHTML = `<i data-lucide="git-merge" class="w-3.5 h-3.5 text-indigo-400"></i><span>Tự động chạy 3 bước: <b>@văn_thư</b> lọc Rerank &rarr; <b>@quản_lý</b> chia việc JSON &rarr; Chuyên gia thực thi.</span>`;
   } else {
-    subtitle.innerHTML = `<i data-lucide="swords" class="w-3.5 h-3.5 text-indigo-400"></i><span>Tranh luận tối đa 3 hiệp: Đề xuất &rarr;  Vạch lá tìm sâu &rarr; Chốt hạ.</span>`;
+    subtitle.innerHTML = `<i data-lucide="swords" class="w-3.5 h-3.5 text-indigo-400"></i><span>Tranh luận tối đa 3 hiệp: Đề xuất &rarr; <b>@chuyên_gia</b> Vạch lá tìm sâu &rarr; Chốt hạ.</span>`;
   }
 
   renderChatMessages();
@@ -1841,7 +2193,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('btnResetQuota').addEventListener('click', () => {
-    const emp = state.employees.find((e) => e.id === state.editingEmployeeId);
+    const emp = getEmpById(state.editingEmployeeId);
     if (emp) {
       emp.quotaUsed = 0;
       emp.cooldownUntil = 0;
@@ -1851,14 +2203,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('btnResetPrompt').addEventListener('click', () => {
-    const emp = state.employees.find((e) => e.id === state.editingEmployeeId);
+    const emp = getEmpById(state.editingEmployeeId);
     if (emp) {
       document.getElementById('modalSystemPrompt').value = emp.defaultPrompt;
     }
   });
 
   document.getElementById('btnSaveEmployee').addEventListener('click', () => {
-    const emp = state.employees.find((e) => e.id === state.editingEmployeeId);
+    const emp = getEmpById(state.editingEmployeeId);
     if (!emp) return;
 
     let rawNick = document.getElementById('modalNickname').value.trim() || emp.nickname;
@@ -1866,7 +2218,9 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     emp.nickname = rawNick;
     emp.model = document.getElementById('modalModel').value.trim() || emp.model;
-    emp.apiKey = document.getElementById('modalApiKey').value.trim();
+    if (!emp.isFreeTool) {
+      emp.apiKey = document.getElementById('modalApiKey').value.trim();
+    }
     emp.accountId = document.getElementById('modalAccountId').value.trim();
     emp.quotaLimit = parseInt(document.getElementById('modalQuotaLimit').value, 10) || 200;
     emp.systemPrompt = document.getElementById('modalSystemPrompt').value.trim() || emp.defaultPrompt;
@@ -1889,14 +2243,14 @@ window.addEventListener('DOMContentLoaded', async () => {
     closeLeaveAlertModal();
     if (!ctx) return;
 
-    const cfEmp = state.employees.find((e) => e.id === 'cloudflare');
+    const cfEmp = getEmpById('cloudflare');
     const backup =
       cfEmp && getEmployeeStatus(cfEmp) === 'active'
         ? cfEmp
-        : state.employees.find((e) => getEmployeeStatus(e) === 'active');
+        : state.employees.find((e) => !e.isFreeTool && getEmployeeStatus(e) === 'active');
 
     if (!backup) {
-      alert('Hiện tại @đa_nhiệm và tất cả nhân viên khác đều chưa có API Key! Sếp hãy cấp ít nhất 1 API Key nhé.');
+      alert('Hiện tại @trợ_lý và tất cả nhân viên khác đều chưa có API Key! Sếp hãy cấp ít nhất 1 API Key nhé.');
       openEmployeeModal('cloudflare');
       return;
     }
@@ -1907,6 +2261,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       isFallback: true,
       replacedNickname: ctx.emp.nickname
     });
+    await executeFreelancerTaskIfPresent(res.reply, ctx.pendingQuery);
   });
 
   // Nút Gõ Búa & Tiếp tục trong Phòng Phản Biện (Phòng 3)
