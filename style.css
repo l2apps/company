@@ -17,10 +17,16 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
 /* Style cho Tabs Phòng Làm Việc */
 .room-tab {
   color: #64748b;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .dark .room-tab {
   color: #94a3b8;
@@ -38,6 +44,7 @@
   padding: 5px 11px;
   border-radius: 9999px;
   white-space: nowrap;
+  flex-shrink: 0;
   background: rgba(99, 102, 241, 0.08);
   color: #6366f1;
   border: 1px solid rgba(99, 102, 241, 0.25);
@@ -92,6 +99,9 @@
 }
 
 /* Định dạng Markdown bên trong bong bóng chat của nhân viên AI */
+.ai-markdown {
+  overflow-wrap: anywhere;
+}
 .ai-markdown p {
   margin-bottom: 0.5rem;
   line-height: 1.6;
@@ -165,4 +175,154 @@
 .pipe-step.done-step span {
   background: #10b981 !important;
   color: white !important;
+}
+
+/* ============================================================================
+   GIAO DIỆN ĐIỆN THOẠI / MÀN HÌNH NHỎ
+   ============================================================================ */
+
+/* Chiều cao theo vùng nhìn thấy thật (trừ thanh địa chỉ & bàn phím); JS cập nhật --app-h */
+body {
+  height: var(--app-h, 100vh) !important;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+@supports (height: 100dvh) {
+  body {
+    height: var(--app-h, 100dvh) !important;
+  }
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Bong bóng chat không được tràn ngang (code, bảng, link dài) */
+#chatContainer {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+#chatContainer .flex-1 {
+  min-width: 0;
+}
+#chatContainer a {
+  overflow-wrap: anywhere;
+}
+/* Chữ dài không dấu cách (link, mã) trong bong bóng của Sếp không được tràn ra ngoài */
+#chatContainer .whitespace-pre-wrap {
+  overflow-wrap: anywhere;
+}
+
+/* Ngăn kéo nhân sự trên điện thoại: có đổ bóng, cuộn mượt */
+#appSidebar {
+  box-shadow: none;
+}
+@media (max-width: 1023px) {
+  #appSidebar {
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.45);
+    padding-top: env(safe-area-inset-top);
+  }
+  #appSidebar.-translate-x-full {
+    box-shadow: none;
+  }
+  #employeeList {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Chừa vùng tai thỏ / thanh vuốt ở đáy màn hình */
+.app-header {
+  padding-top: env(safe-area-inset-top);
+  height: calc(3.5rem + env(safe-area-inset-top));
+}
+.app-footer {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 767px) {
+  /* Chống iPhone tự phóng to khi bấm vào ô nhập (cần chữ >= 16px) */
+  input[type="text"],
+  input[type="password"],
+  input[type="number"],
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Vùng chạm đủ lớn cho ngón tay */
+  .room-tab {
+    min-height: 40px;
+  }
+  .quick-chip {
+    padding: 8px 13px;
+    font-size: 12px;
+  }
+  #btnSend,
+  #btnMic,
+  #btnAttach {
+    min-width: 42px;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Bong bóng của Sếp rộng gần hết màn hình */
+  #chatContainer .max-w-2xl {
+    max-width: 92%;
+  }
+  /* Bong bóng nhân viên: tận dụng bề ngang, avatar nhỏ lại */
+  #chatContainer .max-w-3xl {
+    max-width: 100%;
+    gap: 0.5rem;
+  }
+  #chatContainer .max-w-3xl > .w-9 {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.9rem;
+  }
+
+  /* Bảng Markdown cuộn ngang trong bong bóng */
+  .ai-markdown table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* Thanh công cụ dưới tin nhắn (Copy / Word / PDF / Đá việc) dễ bấm hơn */
+  #chatContainer button,
+  #chatContainer select {
+    min-height: 34px;
+  }
+
+  /* Thẻ file đính kèm không tràn khung */
+  #attachmentPreviewBar > div {
+    max-width: 100%;
+  }
+  #attachmentPreviewBar span {
+    overflow-wrap: anywhere;
+  }
+
+  /* Pipeline: chỉ hiện chữ của bước đang chạy để vừa chiều ngang */
+  .pipe-step .pipe-label {
+    display: none;
+  }
+  .pipe-step.active-step .pipe-label {
+    display: block;
+  }
+  .pipe-step.active-step {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .pipe-step .pipe-label > div {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Màn hình rất hẹp (<= 360px) */
+@media (max-width: 360px) {
+  .room-tab {
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
 }
