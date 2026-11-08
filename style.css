@@ -1,3 +1,22 @@
+/* ============================================================================
+   BẢNG MÀU RỪNG NGỌC LỤC BẢO & GIẤY ẤM (EMERALD SAGE & WARM ALABASTER)
+   Dịu mắt, chống mỏi mắt khi làm việc lâu, không dùng màu xanh dương
+   ============================================================================ */
+
+:root {
+  --brand-primary: #059669;       /* Emerald 600 */
+  --brand-primary-hover: #047857; /* Emerald 700 */
+  --brand-light: rgba(5, 150, 105, 0.09);
+  --brand-border: rgba(5, 150, 105, 0.28);
+}
+
+.dark {
+  --brand-primary: #10b981;       /* Emerald 500 */
+  --brand-primary-hover: #059669;
+  --brand-light: rgba(16, 185, 129, 0.14);
+  --brand-border: rgba(16, 185, 129, 0.3);
+}
+
 /* Tùy chỉnh thanh cuộn hiện đại */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -7,11 +26,11 @@
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
+  background: rgba(120, 113, 108, 0.25);
   border-radius: 9999px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.45);
+  background: rgba(120, 113, 108, 0.45);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -24,49 +43,84 @@
 
 /* Style cho Tabs Phòng Làm Việc */
 .room-tab {
-  color: #64748b;
+  color: #57534e;
   flex-shrink: 0;
   white-space: nowrap;
+  border: 1px solid transparent;
+}
+.room-tab:hover:not(.active-tab) {
+  background: rgba(120, 113, 108, 0.08);
+  color: #1c1917;
 }
 .dark .room-tab {
-  color: #94a3b8;
+  color: #a8a29e;
+}
+.dark .room-tab:hover:not(.active-tab) {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f5f5f4;
 }
 .room-tab.active-tab {
-  background: #6366f1;
+  background: #059669;
   color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 3px 10px rgba(5, 150, 105, 0.28);
+}
+.dark .room-tab.active-tab {
+  background: #059669;
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.25);
 }
 
 /* Quick Chips trên thanh chat */
 .quick-chip {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 500;
-  padding: 5px 11px;
+  padding: 5px 12px;
   border-radius: 9999px;
   white-space: nowrap;
   flex-shrink: 0;
-  background: rgba(99, 102, 241, 0.08);
-  color: #6366f1;
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  transition: all 0.15s ease;
+  background: #f5f4f0;
+  color: #065f46;
+  border: 1px solid rgba(5, 150, 105, 0.25);
+  transition: all 0.18s ease;
 }
 .dark .quick-chip {
-  background: rgba(99, 102, 241, 0.14);
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.25);
 }
 .quick-chip:hover {
-  background: #6366f1;
+  background: #059669;
   color: #ffffff;
+  border-color: #059669;
+  transform: translateY(-1px);
+}
+.dark .quick-chip:hover {
+  background: #059669;
+  color: #ffffff;
+}
+
+/* Hiệu ứng viền sáng dịu khi bấm vào khung nhập lệnh */
+.chat-input-box:focus-within {
+  border-color: #059669 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.14);
+}
+.dark .chat-input-box:focus-within {
+  border-color: #10b981 !important;
+  background-color: #232925 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
 }
 
 /* Hiệu ứng 3 chấm nhảy sóng kiểu Messenger */
 .typing-dots span {
   width: 6px;
   height: 6px;
-  background-color: #6366f1;
+  background-color: #059669;
   border-radius: 50%;
   display: inline-block;
   animation: messengerWave 1.3s infinite ease-in-out;
+}
+.dark .typing-dots span {
+  background-color: #34d399;
 }
 .typing-dots span:nth-child(2) {
   animation-delay: 0.2s;
@@ -78,7 +132,7 @@
 @keyframes messengerWave {
   0%, 60%, 100% {
     transform: translateY(0);
-    opacity: 0.5;
+    opacity: 0.45;
   }
   30% {
     transform: translateY(-5px);
@@ -101,32 +155,40 @@
 /* Định dạng Markdown bên trong bong bóng chat của nhân viên AI */
 .ai-markdown {
   overflow-wrap: anywhere;
+  line-height: 1.65;
 }
 .ai-markdown p {
-  margin-bottom: 0.5rem;
-  line-height: 1.6;
+  margin-bottom: 0.55rem;
+  line-height: 1.65;
 }
 .ai-markdown p:last-child {
   margin-bottom: 0;
 }
 .ai-markdown pre {
-  background: #0d1017;
-  color: #e2e8f0;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
+  background: #181a19;
+  color: #e7e5e4;
+  padding: 0.8rem 1rem;
+  border-radius: 0.6rem;
+  border: 1px solid #2b312d;
   overflow-x: auto;
-  margin: 0.6rem 0;
+  margin: 0.65rem 0;
   font-size: 12px;
 }
 .ai-markdown code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.85em;
-  background: rgba(99, 102, 241, 0.15);
-  padding: 0.15rem 0.35rem;
-  border-radius: 0.25rem;
+  background: rgba(5, 150, 105, 0.12);
+  color: #065f46;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.3rem;
+}
+.dark .ai-markdown code {
+  background: rgba(16, 185, 129, 0.16);
+  color: #6ee7b7;
 }
 .ai-markdown pre code {
   background: transparent;
+  color: inherit;
   padding: 0;
 }
 .ai-markdown ul, .ai-markdown ol {
@@ -146,42 +208,104 @@
   font-size: 12px;
 }
 .ai-markdown th, .ai-markdown td {
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  padding: 6px 10px;
+  border: 1px solid rgba(120, 113, 108, 0.28);
+  padding: 7px 11px;
   text-align: left;
 }
 .ai-markdown th {
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(5, 150, 105, 0.1);
   font-weight: 600;
 }
 
 /* Bước chạy Pipeline sáng đèn */
 .pipe-step.active-step {
   opacity: 1 !important;
-  color: #6366f1;
+  color: #059669;
 }
 .dark .pipe-step.active-step {
-  color: #818cf8;
+  color: #34d399;
 }
 .pipe-step.active-step span {
-  background: #6366f1 !important;
+  background: #059669 !important;
   color: white !important;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.6);
+  box-shadow: 0 0 12px rgba(5, 150, 105, 0.5);
 }
 .pipe-step.done-step {
   opacity: 1 !important;
-  color: #10b981;
+  color: #d97706;
 }
 .pipe-step.done-step span {
-  background: #10b981 !important;
+  background: #d97706 !important;
   color: white !important;
+}
+
+/* ============================================================================
+   GHI ĐÈ TỰ ĐỘNG CÁC CLASS MÀU XANH DƯƠNG & TƯƠNG PHẢN TỪ APP.JS
+   (Giúp toàn bộ thẻ nhân viên và bong bóng chat đổi màu mà không cần sửa JS)
+   ============================================================================ */
+
+/* Chuyển mọi nút/chữ xanh dương (indigo/blue) sinh ra từ app.js sang Xanh Ngọc & Đá Ấm */
+#chatContainer .bg-indigo-600,
+#employeeList .bg-indigo-600 {
+  background-color: #059669 !important;
+}
+#chatContainer .text-indigo-600,
+#chatContainer .text-indigo-500,
+#chatContainer .text-blue-600,
+#chatContainer .text-blue-500,
+#employeeList .text-indigo-500 {
+  color: #047857 !important;
+}
+.dark #chatContainer .text-indigo-400,
+.dark #chatContainer .text-indigo-500,
+.dark #chatContainer .text-blue-400,
+.dark #chatContainer .text-blue-500,
+.dark #employeeList .text-indigo-400 {
+  color: #34d399 !important;
+}
+
+/* Sửa lỗi chữ đỏ/hồng (Xuất PDF, Lệnh kỹ thuật) bị chìm và khó đọc trên nền tối */
+.dark #chatContainer .text-rose-500,
+.dark #chatContainer .text-rose-600,
+.dark #chatContainer .text-red-500,
+.dark #chatContainer .text-red-600,
+.dark #chatContainer .text-pink-600 {
+  color: #fda4af !important; /* Hồng san hô sáng rõ trên nền tối */
+}
+
+/* Làm đẹp thẻ tin nhắn trong khung Chat: nổi khối êm dịu trên nền giấy ấm */
+#chatContainer > div > div.flex-1 > div {
+  box-shadow: 0 2px 8px rgba(28, 25, 23, 0.04);
+  border-color: rgba(214, 211, 209, 0.75);
+}
+.dark #chatContainer > div > div.flex-1 > div {
+  background-color: #1b1f1d !important;
+  border-color: #2b312d !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+/* Làm đẹp các thẻ Nhân viên bên cột trái */
+#employeeList > div {
+  transition: all 0.18s ease;
+  border-radius: 0.85rem;
+}
+#employeeList > div:hover {
+  border-color: rgba(5, 150, 105, 0.45) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.07);
+}
+.dark #employeeList > div {
+  background-color: #1f2421 !important;
+  border-color: #2b312d !important;
+}
+.dark #employeeList > div:hover {
+  border-color: rgba(16, 185, 129, 0.45) !important;
 }
 
 /* ============================================================================
    GIAO DIỆN ĐIỆN THOẠI / MÀN HÌNH NHỎ
    ============================================================================ */
 
-/* Chiều cao theo vùng nhìn thấy thật (trừ thanh địa chỉ & bàn phím); JS cập nhật --app-h */
 body {
   height: var(--app-h, 100vh) !important;
   overscroll-behavior: none;
@@ -197,7 +321,6 @@ html {
   text-size-adjust: 100%;
 }
 
-/* Bong bóng chat không được tràn ngang (code, bảng, link dài) */
 #chatContainer {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -208,12 +331,10 @@ html {
 #chatContainer a {
   overflow-wrap: anywhere;
 }
-/* Chữ dài không dấu cách (link, mã) trong bong bóng của Sếp không được tràn ra ngoài */
 #chatContainer .whitespace-pre-wrap {
   overflow-wrap: anywhere;
 }
 
-/* Ngăn kéo nhân sự trên điện thoại: có đổ bóng, cuộn mượt */
 #appSidebar {
   box-shadow: none;
 }
@@ -231,7 +352,6 @@ html {
   }
 }
 
-/* Chừa vùng tai thỏ / thanh vuốt ở đáy màn hình */
 .app-header {
   padding-top: env(safe-area-inset-top);
   height: calc(3.5rem + env(safe-area-inset-top));
@@ -241,7 +361,6 @@ html {
 }
 
 @media (max-width: 767px) {
-  /* Chống iPhone tự phóng to khi bấm vào ô nhập (cần chữ >= 16px) */
   input[type="text"],
   input[type="password"],
   input[type="number"],
@@ -249,7 +368,6 @@ html {
     font-size: 16px !important;
   }
 
-  /* Vùng chạm đủ lớn cho ngón tay */
   .room-tab {
     min-height: 40px;
   }
@@ -267,11 +385,9 @@ html {
     justify-content: center;
   }
 
-  /* Bong bóng của Sếp rộng gần hết màn hình */
   #chatContainer .max-w-2xl {
     max-width: 92%;
   }
-  /* Bong bóng nhân viên: tận dụng bề ngang, avatar nhỏ lại */
   #chatContainer .max-w-3xl {
     max-width: 100%;
     gap: 0.5rem;
@@ -282,20 +398,17 @@ html {
     font-size: 0.9rem;
   }
 
-  /* Bảng Markdown cuộn ngang trong bong bóng */
   .ai-markdown table {
     display: block;
     overflow-x: auto;
     white-space: nowrap;
   }
 
-  /* Thanh công cụ dưới tin nhắn (Copy / Word / PDF / Đá việc) dễ bấm hơn */
   #chatContainer button,
   #chatContainer select {
     min-height: 34px;
   }
 
-  /* Thẻ file đính kèm không tràn khung */
   #attachmentPreviewBar > div {
     max-width: 100%;
   }
@@ -303,7 +416,6 @@ html {
     overflow-wrap: anywhere;
   }
 
-  /* Pipeline: chỉ hiện chữ của bước đang chạy để vừa chiều ngang */
   .pipe-step .pipe-label {
     display: none;
   }
@@ -319,7 +431,6 @@ html {
   }
 }
 
-/* Màn hình rất hẹp (<= 360px) */
 @media (max-width: 360px) {
   .room-tab {
     padding-left: 0.6rem;
