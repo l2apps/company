@@ -8,7 +8,7 @@ if (window.pdfjsLib) {
 
 // Tăng giá trị này mỗi khi đổi model/biệt danh/prompt mặc định để ép trình duyệt cập nhật lại
 // (vẫn giữ nguyên API Key và Account ID mà Sếp đã nhập trong localStorage)
-const MODEL_VERSION = '2026-12';
+const MODEL_VERSION = '2026-13';
 
 const BASE_SYSTEM_PROMPT_TEMPLATE = `BỐI CẢNH CHUNG:
 Bạn là nhân viên trong "Văn phòng AI" của Sếp (người dùng). Bạn làm việc cùng các đồng nghiệp: {DANH_SÁCH_BIỆT_DANH_ĐỒNG_NGHIỆP}.
@@ -45,6 +45,8 @@ Bạn có một cấp dưới tên là @freelancer chuyên làm các việc kỹ
 - Nếu Sếp bảo vẽ sơ đồ khối/mindmap/quy trình: [FREELANCER_TASK: DIAGRAM | <Mã Mermaid.js hợp lệ>]
 - Nếu Sếp bảo tra từ điển tiếng Anh: [FREELANCER_TASK: DICT | <từ_cần_tra>]
 - Nếu Sếp bảo tìm sách tham khảo: [FREELANCER_TASK: BOOK | <từ_khóa_sách>]
+- Nếu Sếp bảo tra cứu thông tin/tiểu sử/khái niệm trên Wikipedia: [FREELANCER_TASK: WIKI | <từ_khóa_cần_tra>]
+- Nếu Sếp bảo tìm bài báo khoa học/nghiên cứu trên arXiv: [FREELANCER_TASK: ARXIV | <từ_khóa_tiếng_Anh>]
 QUY TẮC TỪ CHỐI KHÁC:
 - Nếu Sếp gửi hình ảnh: Từ chối ngay ("Sếp ơi em không xem được ảnh đâu, để em gọi @chuyên_gia nhìn giúp Sếp nhé! [CHUYỂN_TIẾP: @chuyên_gia]").
 - Nếu Sếp bắt viết bài văn/tiểu luận dài hoặc phân tích sâu tài liệu dài: Chỉ gạch đầu dòng cốt lõi rồi đá sang cho @thư_ký hoặc @chuyên_gia kèm tag [CHUYỂN_TIẾP: @thư_ký].`
@@ -615,7 +617,7 @@ async function callCohereRerank(query, chunks) {
 // ============================================================================
 function parseFreelancerTaskTag(text) {
   if (!text) return null;
-  const regex = /\[FREELANCER_TASK:\s*(CHART|DIAGRAM|DICT|BOOK)\s*\|\s*([\s\S]*?)\]/i;
+  const regex = /\[FREELANCER_TASK:\s*(CHART|DIAGRAM|DICT|BOOK|WIKI|ARXIV)\s*\|\s*([\s\S]*?)\]/i; 
   const match = text.match(regex);
   if (!match) return null;
   return {
@@ -650,6 +652,68 @@ window.downloadFreelancerImage = async function (imgUrl, prefix = 'Freelancer_Ch
     window.open(imgUrl, '_blank');
   }
 };
+// --- KỸ NĂNG 5: TRA CỨU WIKIPEDIA (Tự động tìm bài khớp nhất + Lấy tóm tắt) ---
+async function lookupWikipedia(query, lang = 'vi') {
+  try {
+    const searchUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query.trim())}&utf8=&format=json&origin=*`;
+    const searchRes = await fetch(searchUrl);
+    const searchData = await searchRes.json();
+
+    if (!searchData.query?.search?.length) {
+      if (lang === 'vi') return await lookupWikipedia(query, 'en');
+      return `Không tìm thấy bài viết Wikipedia nào cho "${query}" Sếp ơi!`;
+    }
+
+    const bestTitle = searchData.query.search[0].title;
+
+    const summaryUrl = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestTitle)}`;
+    const sumRes = await fetch(summaryUrl);
+    const sumData = await sumRes.json();
+
+    return `🌐 **Wikipedia (${lang.toUpperCase()}): ${sumData.title}**\n\n` +
+           `${sumData.extract}\n\n` +
+           `🔗 [Đọc toàn bộ bài gốc trên Wikipedia](${sumData.content_urls.desktop.page})`;
+  } catch (err) {
+    return `Lỗi khi tra Wikipedia: ${err.message}`;
+  }
+}
+
+// --- KỸ NĂNG 6: TÌM BÀI BÁO KHOA HỌC TRÊN ARXIV (Lấy Abstract + Link PDF) ---
+async function searchArxiv(englishQuery) {
+  try {
+    const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(englishQuery.trim())}&start=0&max_results=3`;
+    const res = await fetch(url);
+    const xmlText = await res.text();
+
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+    const entries = Array.from(xmlDoc.getElementsByTagName("entry"));
+
+    if (entries.length === 0) {
+      return `Không tìm thấy bài báo khoa học nào trên arXiv cho từ khóa "${englishQuery}".`;
+    }
+
+    const results = entries.map((entry, idx) => {
+      const title = entry.getElementsByTagName("title")[0]?.textContent.replace(/\s+/g, ' ').trim();
+      const summary = entry.getElementsByTagName("summary")[0]?.textContent.replace(/\s+/g, ' ').trim();
+      const published = entry.getElementsByTagName("published")[0]?.textContent.substring(0, 10);
+      const idUrl = entry.getElementsByTagName("id")[0]?.textContent;
+      const pdfUrl = idUrl ? idUrl.replace('/abs/', '/pdf/') + '.pdf' : '#';
+      const authors = Array.from(entry.getElementsByTagName("author"))
+                           .map(a => a.getElementsByTagName("name")[0]?.textContent)
+                           .slice(0, 3).join(', ');
+
+      return `**${idx + 1}. ${title}** (${published})\n` +
+             `✍️ *Tác giả:* ${authors}\n` +
+             `📄 *Tóm tắt:* ${summary.substring(0, 280)}...\n` +
+             `📥 [Tải PDF bài báo](${pdfUrl}) | 🔗 [Trang gốc](${idUrl})`;
+    }).join('\n\n---\n\n');
+
+    return `🎓 **Kết quả nghiên cứu từ arXiv cho "${englishQuery}":**\n\n${results}`;
+  } catch (err) {
+    return `Lỗi khi tra cứu arXiv: ${err.message}`;
+  }
+}
 
 async function executeFreelancerTaskIfPresent(replyText, originalBossQuery) {
   const parsed = parseFreelancerTaskTag(replyText);
@@ -668,7 +732,6 @@ async function executeFreelancerTaskIfPresent(replyText, originalBossQuery) {
     let freelancerMeta = null;
 
     if (taskType === 'CHART') {
-      // Làm sạch chuỗi JSON nếu AI bọc trong markdown codeblock
       const cleanJson = payload
         .replace(/^```(?:json)?/i, '')
         .replace(/```$/i, '')
@@ -758,6 +821,10 @@ async function executeFreelancerTaskIfPresent(replyText, originalBossQuery) {
           };
         }
       }
+    } else if (taskType === 'WIKI') {
+      reportContent = await lookupWikipedia(payload);
+    } else if (taskType === 'ARXIV') {
+      reportContent = await searchArxiv(payload);
     }
 
     incrementQuota('freelancer');
@@ -1199,6 +1266,8 @@ async function handleDirectRoomSubmit(userText) {
 Hãy trả lời Sếp thật ngắn gọn (1-2 câu) với tư cách ${groqEmp.nickname} và lập tức giao việc cho @freelancer bằng ĐÚNG 1 thẻ lệnh ở cuối câu trả lời:
 - Nếu vẽ biểu đồ số liệu: [FREELANCER_TASK: CHART | <Chuỗi JSON cấu hình Chart.js hợp lệ trên 1 dòng, dùng dấu nháy kép chuẩn>]
 - Nếu vẽ sơ đồ khối/mindmap/quy trình: [FREELANCER_TASK: DIAGRAM | <Mã Mermaid.js hợp lệ, ví dụ: graph TD; A-->B;>]
+- Nếu tra cứu Wikipedia: [FREELANCER_TASK: WIKI | <từ_khóa_cần_tra>]
+- Nếu tìm bài báo khoa học arXiv: [FREELANCER_TASK: ARXIV | <từ_khóa_tiếng_Anh>]
 - Nếu tra từ điển tiếng Anh: [FREELANCER_TASK: DICT | <từ_tiếng_Anh_cần_tra>]
 - Nếu tìm sách tham khảo: [FREELANCER_TASK: BOOK | <từ_khóa_sách>]`;
 
