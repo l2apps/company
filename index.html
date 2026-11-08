@@ -2,7 +2,8 @@
 <html lang="vi" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#161922" />
   <title>Tuan Office</title>
 
   <!-- TailwindCSS CDN -->
@@ -45,12 +46,20 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <!-- Custom Styles -->
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=2" />
 </head>
 <body class="bg-slate-100 dark:bg-[#0f1117] text-slate-800 dark:text-slate-100 h-screen overflow-hidden flex select-none">
 
-  <!-- ================= CỘT TRÁI: SIDEBAR QUẢN LÝ NHÂN SỰ ================= -->
-  <aside class="w-80 bg-white dark:bg-[#161922] border-r border-slate-200 dark:border-[#2a2f3d] flex flex-col h-full shrink-0 z-20">
+  <!-- Lớp phủ mờ phía sau ngăn kéo nhân sự (chỉ dùng trên điện thoại) -->
+  <div id="sidebarOverlay" class="hidden fixed inset-0 bg-black/60 z-30 lg:hidden"></div>
+
+  <!-- ================= CỘT TRÁI: SIDEBAR QUẢN LÝ NHÂN SỰ (điện thoại: ngăn kéo trượt ra) ================= -->
+  <aside
+    id="appSidebar"
+    class="fixed inset-y-0 left-0 z-40 w-[86vw] max-w-xs -translate-x-full transition-transform duration-200 ease-out
+           lg:static lg:z-20 lg:w-80 lg:max-w-none lg:translate-x-0
+           bg-white dark:bg-[#161922] border-r border-slate-200 dark:border-[#2a2f3d] flex flex-col h-full shrink-0"
+  >
     <!-- Header Công ty -->
     <div class="p-4 border-b border-slate-200 dark:border-[#2a2f3d] flex items-center justify-between">
       <div class="flex items-center gap-2.5">
@@ -71,13 +80,17 @@
         <button id="btnClearHistory" title="Xóa lịch sử phòng hiện tại" class="p-2 rounded-lg hover:bg-rose-500/10 text-slate-500 hover:text-rose-500 transition">
           <i data-lucide="trash-2" class="w-4 h-4"></i>
         </button>
+        <!-- Nút đóng ngăn kéo (chỉ hiện trên điện thoại) -->
+        <button id="btnCloseSidebar" title="Đóng danh sách nhân sự" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#232836] text-slate-500 dark:text-slate-400 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
       </div>
     </div>
 
-    <!-- Danh sách 5 Nhân viên AI -->
+    <!-- Danh sách Nhân viên -->
     <div class="px-3 pt-3 pb-1 flex items-center justify-between">
-      <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Nhân sự trực chiến (5)</span>
-      <span class="text-[10px] text-indigo-500 dark:text-indigo-400">Click để cấu hình</span>
+      <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Nhân sự trực chiến</span>
+      <span class="text-[10px] text-indigo-500 dark:text-indigo-400">Chạm để cấu hình</span>
     </div>
 
     <div id="employeeList" class="flex-1 overflow-y-auto px-3 space-y-2 py-2 custom-scrollbar">
@@ -103,26 +116,35 @@
   </aside>
 
   <!-- ================= KHU VỰC CHÍNH: 3 PHÒNG LÀM VIỆC ================= -->
-  <main class="flex-1 flex flex-col h-full bg-slate-50 dark:bg-[#0f1117] relative overflow-hidden">
+  <main class="flex-1 min-w-0 flex flex-col h-full bg-slate-50 dark:bg-[#0f1117] relative overflow-hidden">
 
     <!-- Top Navigation Tabs (3 Phòng) -->
-    <header class="h-14 border-b border-slate-200 dark:border-[#2a2f3d] bg-white dark:bg-[#161922] px-4 flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-2">
-        <button data-room="direct" class="room-tab active-tab flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition">
+    <header class="app-header h-14 border-b border-slate-200 dark:border-[#2a2f3d] bg-white dark:bg-[#161922] px-2 sm:px-4 flex items-center gap-2 shrink-0">
+      <!-- Nút mở danh sách nhân sự (chỉ hiện trên điện thoại) -->
+      <button id="btnOpenSidebar" title="Mở danh sách nhân sự" class="lg:hidden shrink-0 p-2.5 rounded-lg bg-slate-100 dark:bg-[#232836] text-slate-600 dark:text-slate-300">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+
+      <!-- 3 tab: trên điện thoại cuộn ngang, tên ngắn -->
+      <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar flex-1 min-w-0">
+        <button data-room="direct" class="room-tab active-tab flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-lg text-xs font-semibold transition">
           <i data-lucide="message-square-dot" class="w-4 h-4"></i>
-          <span>Phòng 1: Văn phòng </span>
+          <span class="hidden md:inline">Phòng 1: Văn phòng</span>
+          <span class="md:hidden">Văn phòng</span>
         </button>
-        <button data-room="pipeline" class="room-tab flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition">
+        <button data-room="pipeline" class="room-tab flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-lg text-xs font-semibold transition">
           <i data-lucide="git-merge" class="w-4 h-4"></i>
-          <span>Phòng 2: Phối Hợp (Pipeline)</span>
+          <span class="hidden md:inline">Phòng 2: Phối Hợp (Pipeline)</span>
+          <span class="md:hidden">Phối Hợp</span>
         </button>
-        <button data-room="debate" class="room-tab flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition">
+        <button data-room="debate" class="room-tab flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-lg text-xs font-semibold transition">
           <i data-lucide="swords" class="w-4 h-4"></i>
-          <span>Phòng 3: Phản Biện (3-Turn Debate)</span>
+          <span class="hidden md:inline">Phòng 3: Phản Biện (3-Turn Debate)</span>
+          <span class="md:hidden">Phản Biện</span>
         </button>
       </div>
 
-      <!-- Mô tả nhanh phòng hiện tại -->
+      <!-- Mô tả nhanh phòng hiện tại (chỉ màn hình lớn) -->
       <div id="roomSubtitle" class="text-xs text-slate-500 dark:text-slate-400 hidden lg:flex items-center gap-1.5">
         <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i>
         <span>Gõ <b>@</b> để giao việc trực tiếp.</span>
@@ -130,52 +152,52 @@
     </header>
 
     <!-- Thanh Tiến Trình Pipeline (Chỉ hiện ở Phòng 2: Phối Hợp) -->
-    <div id="pipelineStepper" class="hidden bg-indigo-950/20 dark:bg-[#191d28] border-b border-slate-200 dark:border-[#2a2f3d] px-6 py-2.5">
+    <div id="pipelineStepper" class="hidden bg-indigo-950/20 dark:bg-[#191d28] border-b border-slate-200 dark:border-[#2a2f3d] px-3 sm:px-6 py-2.5">
       <div class="max-w-3xl mx-auto flex items-center justify-between text-xs">
         <div id="pipeStep1" class="pipe-step flex items-center gap-2 opacity-50">
-          <span class="w-6 h-6 rounded-full flex items-center justify-center bg-slate-200 dark:bg-slate-700 font-bold">1</span>
-          <div>
+          <span class="w-6 h-6 shrink-0 rounded-full flex items-center justify-center bg-slate-200 dark:bg-slate-700 font-bold">1</span>
+          <div class="pipe-label">
             <div class="font-semibold">Lọc Tài Liệu (Rerank)</div>
-            <div class="text-[10px] text-slate-400">@thủ_thư chọn Top 3 đoạn</div>
+            <div class="text-[10px] text-slate-400">@văn_thư chọn Top 3 đoạn</div>
           </div>
         </div>
-        <div class="h-0.5 flex-1 mx-4 bg-slate-200 dark:bg-slate-700"></div>
+        <div class="h-0.5 flex-1 mx-2 sm:mx-4 bg-slate-200 dark:bg-slate-700"></div>
         <div id="pipeStep2" class="pipe-step flex items-center gap-2 opacity-50">
-          <span class="w-6 h-6 rounded-full flex items-center justify-center bg-slate-200 dark:bg-slate-700 font-bold">2</span>
-          <div>
+          <span class="w-6 h-6 shrink-0 rounded-full flex items-center justify-center bg-slate-200 dark:bg-slate-700 font-bold">2</span>
+          <div class="pipe-label">
             <div class="font-semibold">Phân Loại & Điều Phối</div>
-            <div class="text-[10px] text-slate-400">@tốc_độ xuất JSON giao việc</div>
+            <div class="text-[10px] text-slate-400">@quản_lý xuất JSON giao việc</div>
           </div>
         </div>
-        <div class="h-0.5 flex-1 mx-4 bg-slate-200 dark:bg-slate-700"></div>
+        <div class="h-0.5 flex-1 mx-2 sm:mx-4 bg-slate-200 dark:bg-slate-700"></div>
         <div id="pipeStep3" class="pipe-step flex items-center gap-2 opacity-50">
-          <span class="w-6 h-6 rounded-full flex items-center justify-center bg-slate-200 dark:bg-slate-700 font-bold">3</span>
-          <div>
+          <span class="w-6 h-6 shrink-0 rounded-full flex items-center justify-center bg-slate-200 dark:bg-slate-700 font-bold">3</span>
+          <div class="pipe-label">
             <div class="font-semibold">Chuyên Gia Thực Thi</div>
-            <div class="text-[10px] text-slate-400">@giáo_sư / @thư_ký hoàn thiện</div>
+            <div class="text-[10px] text-slate-400">@chuyên_gia / @thư_ký hoàn thiện</div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Thanh trạng thái Hiệp đấu + Gõ Búa Của Sếp (Chỉ hiện ở Phòng 3: Phản Biện) -->
-    <div id="debateControlBar" class="hidden bg-amber-500/10 border-b border-amber-500/30 px-6 py-2.5">
-      <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400">
-          <span id="debateTurnBadge" class="px-2 py-0.5 rounded bg-amber-500 text-white font-bold">HIỆP 1/3</span>
-          <span id="debateStatusText">Sẵn sàng mở phiên tranh luận 3 hiệp...</span>
+    <div id="debateControlBar" class="hidden bg-amber-500/10 border-b border-amber-500/30 px-3 sm:px-6 py-2.5">
+      <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+        <div class="flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 min-w-0">
+          <span id="debateTurnBadge" class="shrink-0 px-2 py-0.5 rounded bg-amber-500 text-white font-bold">HIỆP 1/3</span>
+          <span id="debateStatusText" class="min-w-0">Sẵn sàng mở phiên tranh luận 3 hiệp...</span>
         </div>
-        <div id="bossOverrideControls" class="hidden flex items-center gap-2 flex-1 max-w-xl">
+        <div id="bossOverrideControls" class="hidden flex flex-wrap items-center gap-2 flex-1 w-full sm:w-auto sm:max-w-xl">
           <input
             id="bossInterjectInput"
             type="text"
             placeholder="Sếp chèn thêm chỉ đạo cho hiệp sau (tùy chọn)..."
-            class="flex-1 text-xs px-3 py-1.5 rounded-lg bg-white dark:bg-[#1e222d] border border-amber-500/40 focus:outline-none select-text"
+            class="flex-1 basis-full sm:basis-0 min-w-0 text-xs px-3 py-2 rounded-lg bg-white dark:bg-[#1e222d] border border-amber-500/40 focus:outline-none select-text"
           />
-          <button id="btnDebateContinue" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1 shadow">
+          <button id="btnDebateContinue" class="flex-1 sm:flex-none px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center justify-center gap-1 shadow">
             <i data-lucide="play" class="w-3.5 h-3.5"></i> Tiếp tục hiệp sau
           </button>
-          <button id="btnBossGavel" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex items-center gap-1 shadow">
+          <button id="btnBossGavel" class="flex-1 sm:flex-none px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex items-center justify-center gap-1 shadow">
             🔨 Dừng cãi! Chốt ý này
           </button>
         </div>
@@ -183,14 +205,14 @@
     </div>
 
     <!-- Khu vực Luồng Tin Nhắn (Chat Stream) -->
-    <div id="chatContainer" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 custom-scrollbar select-text">
+    <div id="chatContainer" class="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 custom-scrollbar select-text">
       <!-- Tin nhắn được render tại đây -->
     </div>
 
     <!-- Hiệu ứng "Đang nhập..." kiểu Messenger -->
-    <div id="typingIndicator" class="hidden px-6 py-2 flex items-center gap-3">
-      <div id="typingAvatar" class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow"></div>
-      <div class="bg-white dark:bg-[#1e222d] border border-slate-200 dark:border-[#2a2f3d] rounded-2xl px-3.5 py-2 flex items-center gap-2 shadow-sm">
+    <div id="typingIndicator" class="hidden px-3 sm:px-6 py-2 flex items-center gap-3">
+      <div id="typingAvatar" class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-white text-xs font-bold shadow"></div>
+      <div class="min-w-0 bg-white dark:bg-[#1e222d] border border-slate-200 dark:border-[#2a2f3d] rounded-2xl px-3.5 py-2 flex items-center gap-2 shadow-sm">
         <div class="typing-dots flex items-center gap-1">
           <span></span><span></span><span></span>
         </div>
@@ -199,10 +221,10 @@
     </div>
 
     <!-- ================= THANH NHẬP LỆNH (BOTTOM CHAT BAR) ================= -->
-    <footer class="p-3 md:p-4 bg-white dark:bg-[#161922] border-t border-slate-200 dark:border-[#2a2f3d] relative">
+    <footer class="app-footer p-2 sm:p-3 md:p-4 bg-white dark:bg-[#161922] border-t border-slate-200 dark:border-[#2a2f3d] relative">
 
       <!-- Popup Autocomplete @biệt_danh -->
-      <div id="mentionPopup" class="hidden absolute bottom-full left-4 mb-2 w-72 bg-white dark:bg-[#1e222d] border border-slate-200 dark:border-[#2a2f3d] rounded-xl shadow-2xl overflow-hidden z-30">
+      <div id="mentionPopup" class="hidden absolute bottom-full left-2 right-2 sm:left-4 sm:right-auto sm:w-72 mb-2 max-h-60 overflow-y-auto bg-white dark:bg-[#1e222d] border border-slate-200 dark:border-[#2a2f3d] rounded-xl shadow-2xl z-30">
         <div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-[#2a2f3d]">
           Chọn nhân viên để giao việc (@)
         </div>
@@ -229,11 +251,11 @@
       </div>
 
       <!-- Khung Input Chính -->
-      <div class="flex items-end gap-2 bg-slate-100 dark:bg-[#1e222d] border border-slate-200 dark:border-[#2a2f3d] rounded-2xl p-2 focus-within:border-indigo-500 transition">
+      <div class="flex items-end gap-1.5 sm:gap-2 bg-slate-100 dark:bg-[#1e222d] border border-slate-200 dark:border-[#2a2f3d] rounded-2xl p-1.5 sm:p-2 focus-within:border-indigo-500 transition">
         <!-- Nút + Đính kèm thông minh -->
-        <div class="relative">
+        <div class="relative shrink-0">
           <input type="file" id="fileInput" accept=".pdf,.docx,.png,.jpg,.jpeg,.webp" class="hidden" />
-          <button id="btnAttach" title="Đính kèm PDF/Word (Bóc chữ 0 API) hoặc Ảnh (Cho @giáo_sư)" class="p-2.5 rounded-xl bg-white dark:bg-[#262b38] hover:bg-indigo-600 hover:text-white text-slate-600 dark:text-slate-300 transition shadow-sm">
+          <button id="btnAttach" title="Đính kèm PDF/Word (Bóc chữ 0 API) hoặc Ảnh (Cho @chuyên_gia)" class="p-2.5 rounded-xl bg-white dark:bg-[#262b38] hover:bg-indigo-600 hover:text-white text-slate-600 dark:text-slate-300 transition shadow-sm">
             <i data-lucide="plus" class="w-4 h-4"></i>
           </button>
         </div>
@@ -243,41 +265,41 @@
           id="chatInput"
           rows="1"
           placeholder="Giao việc cho nhân viên (Gõ @ để gọi người, Shift+Enter xuống dòng)..."
-          class="flex-1 bg-transparent text-sm px-2 py-1.5 focus:outline-none resize-none max-h-36 text-slate-800 dark:text-slate-100 select-text"
+          class="flex-1 min-w-0 bg-transparent text-sm px-2 py-2 focus:outline-none resize-none max-h-36 text-slate-800 dark:text-slate-100 select-text"
         ></textarea>
 
         <!-- Nút Mic Ghi âm (Groq Whisper -> Fallback Cloudflare Whisper) -->
-        <button id="btnMic" title="Ghi âm giọng nói tiếng Việt (Whisper STT)" class="p-2.5 rounded-xl bg-white dark:bg-[#262b38] hover:bg-rose-600 hover:text-white text-slate-600 dark:text-slate-300 transition shadow-sm relative">
+        <button id="btnMic" title="Ghi âm giọng nói tiếng Việt (Whisper STT)" class="shrink-0 p-2.5 rounded-xl bg-white dark:bg-[#262b38] hover:bg-rose-600 hover:text-white text-slate-600 dark:text-slate-300 transition shadow-sm relative">
           <i data-lucide="mic" class="w-4 h-4"></i>
         </button>
 
-        <!-- Nút Gửi -->
-        <button id="btnSend" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-500/20 transition">
-          <span>Gửi lệnh</span>
-          <i data-lucide="send" class="w-3.5 h-3.5"></i>
+        <!-- Nút Gửi (điện thoại: chỉ còn biểu tượng) -->
+        <button id="btnSend" class="shrink-0 px-3 sm:px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-500/20 transition">
+          <span class="hidden sm:inline">Gửi lệnh</span>
+          <i data-lucide="send" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
         </button>
       </div>
     </footer>
   </main>
 
   <!-- ================= MODAL 1: HỒ SƠ NHÂN VIÊN & CẤU HÌNH API KEY ================= -->
-  <div id="employeeModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-    <div class="bg-white dark:bg-[#161922] border border-slate-200 dark:border-[#2a2f3d] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+  <div id="employeeModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-3 sm:p-4">
+    <div class="bg-white dark:bg-[#161922] border border-slate-200 dark:border-[#2a2f3d] rounded-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b border-slate-200 dark:border-[#2a2f3d] pb-3">
-        <div class="flex items-center gap-3">
-          <div id="modalAvatar" class="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-lg"></div>
-          <div>
-            <h3 id="modalTitle" class="font-bold text-base">Hồ Sơ Nhân Viên</h3>
+        <div class="flex items-center gap-3 min-w-0">
+          <div id="modalAvatar" class="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-white font-bold text-lg"></div>
+          <div class="min-w-0">
+            <h3 id="modalTitle" class="font-bold text-base truncate">Hồ Sơ Nhân Viên</h3>
             <p id="modalRole" class="text-xs text-slate-400"></p>
           </div>
         </div>
-        <button id="btnCloseModal" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#232836]">
+        <button id="btnCloseModal" class="shrink-0 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#232836]">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
       <div class="space-y-3 text-xs">
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="font-semibold block mb-1">Biệt danh (bắt đầu bằng @)</label>
             <input id="modalNickname" type="text" class="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-[#1e222d] border border-slate-200 dark:border-[#2a2f3d] focus:outline-none select-text" />
@@ -302,7 +324,7 @@
           <input id="modalApiKey" type="password" placeholder="Nhập API Key để kích hoạt nhân viên..." class="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-[#1e222d] border border-slate-200 dark:border-[#2a2f3d] focus:outline-none select-text" />
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="font-semibold block mb-1">Giới hạn Quota / Ngày</label>
             <input id="modalQuotaLimit" type="number" class="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-[#1e222d] border border-slate-200 dark:border-[#2a2f3d] focus:outline-none select-text" />
@@ -324,8 +346,8 @@
       </div>
 
       <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-[#2a2f3d]">
-        <button id="btnCancelModal" class="px-4 py-2 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-[#232836]">Hủy</button>
-        <button id="btnSaveEmployee" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-500/20">
+        <button id="btnCancelModal" class="px-4 py-2.5 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-[#232836]">Hủy</button>
+        <button id="btnSaveEmployee" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-500/20">
           Lưu Hồ Sơ
         </button>
       </div>
@@ -333,26 +355,111 @@
   </div>
 
   <!-- ================= MODAL 2: CẢNH BÁO GỌI NHẦM NGƯỜI NGHỈ PHÉP ================= -->
-  <div id="leaveAlertModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-    <div class="bg-white dark:bg-[#161922] border border-slate-200 dark:border-[#2a2f3d] rounded-2xl max-w-md w-full p-6 shadow-2xl text-center space-y-4">
+  <div id="leaveAlertModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-3 sm:p-4">
+    <div class="bg-white dark:bg-[#161922] border border-slate-200 dark:border-[#2a2f3d] rounded-2xl max-w-md w-full max-h-[92vh] overflow-y-auto p-5 sm:p-6 shadow-2xl text-center space-y-4">
       <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
         <i data-lucide="user-x" class="w-6 h-6"></i>
       </div>
       <h3 id="leaveModalTitle" class="font-bold text-base">Nhân viên đang nghỉ phép!</h3>
       <p id="leaveModalDesc" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed"></p>
       <div class="flex flex-col sm:flex-row gap-2 pt-2">
-        <button id="btnGrantKeyNow" class="flex-1 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold">
+        <button id="btnGrantKeyNow" class="flex-1 py-3 sm:py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold">
           🔑 Cấp API Key ngay
         </button>
-        <button id="btnDelegateBackup" class="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">
-          🔄 Nhờ @đa_nhiệm làm thay
+        <button id="btnDelegateBackup" class="flex-1 py-3 sm:py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">
+          🔄 Nhờ @trợ_lý làm thay
         </button>
       </div>
-      <button id="btnCloseLeaveModal" class="text-xs text-slate-400 hover:underline">Đóng lại</button>
+      <button id="btnCloseLeaveModal" class="text-xs text-slate-400 hover:underline py-1">Đóng lại</button>
     </div>
   </div>
 
   <!-- Logic Ứng Dụng -->
   <script src="app.js"></script>
+
+  <!-- Bổ trợ điện thoại: ngăn kéo nhân sự, chiều cao theo bàn phím, ô chat tự giãn -->
+  <script>
+    (function () {
+      var sidebar = document.getElementById('appSidebar');
+      var overlay = document.getElementById('sidebarOverlay');
+      var openBtn = document.getElementById('btnOpenSidebar');
+      var closeBtn = document.getElementById('btnCloseSidebar');
+      var list = document.getElementById('employeeList');
+      var input = document.getElementById('chatInput');
+      var desktop = window.matchMedia('(min-width: 1024px)');
+      var touch = window.matchMedia('(pointer: coarse)');
+
+      function openSidebar() {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+      }
+      function closeSidebar() {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+      }
+      openBtn.addEventListener('click', openSidebar);
+      closeBtn.addEventListener('click', closeSidebar);
+      overlay.addEventListener('click', closeSidebar);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeSidebar();
+      });
+      // Chạm vào nhân viên -> ngăn kéo tự đóng để Sếp thấy hộp thoại hồ sơ
+      list.addEventListener('click', function () {
+        if (!desktop.matches) closeSidebar();
+      });
+      // Xoay ngang / mở rộng màn hình -> bỏ lớp phủ
+      var onDesktopChange = function (e) { if (e.matches) closeSidebar(); };
+      if (desktop.addEventListener) desktop.addEventListener('change', onDesktopChange);
+      else desktop.addListener(onDesktopChange);
+
+      // Chiều cao thật của vùng nhìn thấy (trừ thanh địa chỉ và bàn phím) để ô chat không bị che
+      function setAppHeight() {
+        var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        document.documentElement.style.setProperty('--app-h', h + 'px');
+      }
+      setAppHeight();
+      window.addEventListener('resize', setAppHeight);
+      window.addEventListener('orientationchange', setAppHeight);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', function () {
+          setAppHeight();
+          window.scrollTo(0, 0);
+        });
+      }
+
+      // Luôn cuộn xuống tin mới nhất (kể cả khi ảnh biểu đồ tải xong muộn hoặc bàn phím bật lên)
+      var chat = document.getElementById('chatContainer');
+      function toBottom() {
+        requestAnimationFrame(function () { chat.scrollTop = chat.scrollHeight; });
+      }
+      new MutationObserver(toBottom).observe(chat, { childList: true });
+      chat.addEventListener('load', function (e) {
+        var last = chat.lastElementChild;
+        if (e.target.tagName === 'IMG' && last && last.contains(e.target)) toBottom();
+      }, true);
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', toBottom);
+
+      // Ô chat tự giãn theo số dòng (tối đa 144px)
+      function autoGrow() {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 144) + 'px';
+      }
+      input.addEventListener('input', autoGrow);
+      document.getElementById('btnSend').addEventListener('click', function () { setTimeout(autoGrow, 0); });
+      document.querySelectorAll('.quick-chip').forEach(function (c) {
+        c.addEventListener('click', function () { setTimeout(autoGrow, 0); });
+      });
+
+      // Điện thoại: phím Enter xuống dòng (không gửi), Sếp bấm nút gửi để gửi lệnh
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey && touch.matches) {
+          e.stopImmediatePropagation();
+        } else if (e.key === 'Enter' && !e.shiftKey) {
+          setTimeout(autoGrow, 0);
+        }
+      });
+      if (touch.matches) input.placeholder = 'Giao việc… (gõ @)';
+    })();
+  </script>
 </body>
 </html>
