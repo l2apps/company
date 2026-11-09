@@ -264,6 +264,14 @@
   color: #34d399 !important;
 }
 
+/* Bong bóng "SẾP CHỈ ĐẠO" (nền xanh ngọc): dòng tiêu đề và thẻ tên file đồng bộ tông xanh */
+#chatContainer .text-indigo-200 {
+  color: #a7f3d0 !important;
+}
+#chatContainer .bg-indigo-700\/60 {
+  background-color: rgba(4, 120, 87, 0.6) !important;
+}
+
 /* Sửa lỗi chữ đỏ/hồng (Xuất PDF, Lệnh kỹ thuật) bị chìm và khó đọc trên nền tối */
 .dark #chatContainer .text-rose-500,
 .dark #chatContainer .text-rose-600,
@@ -273,13 +281,15 @@
   color: #fda4af !important; /* Hồng san hô sáng rõ trên nền tối */
 }
 
-/* Làm đẹp thẻ tin nhắn trong khung Chat: nổi khối êm dịu trên nền giấy ấm */
-#chatContainer > div > div.flex-1 > div {
+/* Làm đẹp thẻ tin nhắn trong khung Chat: nổi khối êm dịu trên nền giấy ấm.
+   LƯU Ý: chọn đúng BONG BÓNG (div.flex-1), không chọn các khối bên trong nó,
+   nếu không các khối con sẽ bị tô màu khác với bong bóng. */
+#chatContainer > div > div.flex-1 {
   box-shadow: 0 2px 8px rgba(28, 25, 23, 0.04);
   border-color: rgba(214, 211, 209, 0.75);
 }
-.dark #chatContainer > div > div.flex-1 > div {
-  background-color: #1b1f1d !important;
+.dark #chatContainer > div > div.flex-1 {
+  background-color: #1f2421 !important;
   border-color: #2b312d !important;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
 }
