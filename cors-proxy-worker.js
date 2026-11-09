@@ -1,7 +1,8 @@
 // Cloudflare Worker: proxy riêng cho AI Office (chạy trên GitHub Pages)
-// Chỉ chuyển tiếp tới Cohere và Cloudflare API, và chỉ nhận request từ trang của Sếp.
+// Chỉ chuyển tiếp tới Cohere, Cloudflare và arXiv, và chỉ nhận request từ trang của Sếp.
+// Dán toàn bộ nội dung này vào Worker trên dash.cloudflare.com (Edit code) rồi bấm Deploy.
 
-const ALLOWED_HOSTS = ['api.cohere.com', 'api.cloudflare.com'];
+const ALLOWED_HOSTS = ['api.cohere.com', 'api.cloudflare.com', 'export.arxiv.org'];
 
 // Trang được phép dùng proxy này (đổi nếu tên GitHub của Sếp khác)
 const ALLOWED_ORIGINS = ['https://l2apps.github.io'];
