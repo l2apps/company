@@ -357,7 +357,7 @@ function buildFullSystemPrompt(emp) {
 }
 
 // ============================================================================
-// 4. TÍCH HỢP GỌI API THẬT CHO CÁC DỊCH VỤ (CÓ PROXY CHO CLOUDFLARE & COHERE)
+// 4. TÍCH HỢP GỌI API THẬT CHO CÁC DỊCH VỤ (CÓ PROXY CHO CLOUDFLARE, COHERE & ARXIV)
 // ============================================================================
 const WORKER_PROXY_URL = 'https://tny.qp198178.workers.dev';
 
@@ -615,24 +615,70 @@ async function callCohereRerank(query, chunks) {
 // ============================================================================
 // 4B. CƠ CHẾ AUTO-CHAIN: GROQ (@quản_lý) RA LỆNH -> @freelancer THỰC THI
 // ============================================================================
+
+// Đọc thẻ lệnh [FREELANCER_TASK: LOẠI | DỮ_LIỆU].
+// LƯU Ý: dữ liệu (JSON biểu đồ, mã Mermaid) chứa nhiều dấu [ ], nên phải đếm cặp ngoặc để tìm đúng dấu ]
+// đóng thẻ. Regex cũ dừng ở dấu ] đầu tiên nên cắt cụt JSON/Mermaid.
 function parseFreelancerTaskTag(text) {
   if (!text) return null;
-  const regex = /\[FREELANCER_TASK:\s*(CHART|DIAGRAM|DICT|BOOK|WIKI|ARXIV)\s*\|\s*([\s\S]*?)\]/i; 
-  const match = text.match(regex);
-  if (!match) return null;
+  const head = /\[FREELANCER_TASK:\s*(CHART|DIAGRAM|DICT|BOOK|WIKI|ARXIV)\s*\|/i.exec(text);
+  if (!head) return null;
+
+  const start = head.index;
+  const bodyStart = start + head[0].length;
+
+  // Tìm vị trí dấu ] đóng thẻ. awareOfStrings = true: bỏ qua ngoặc nằm trong chuỗi "..."
+  const findClose = (awareOfStrings) => {
+    let depth = 1;
+    let inStr = false;
+    let esc = false;
+    for (let i = bodyStart; i < text.length; i++) {
+      const ch = text[i];
+      if (awareOfStrings && inStr) {
+        if (esc) esc = false;
+        else if (ch === '\\') esc = true;
+        else if (ch === '"') inStr = false;
+        continue;
+      }
+      if (awareOfStrings && ch === '"') {
+        inStr = true;
+        continue;
+      }
+      if (ch === '[') depth++;
+      else if (ch === ']') {
+        depth--;
+        if (depth === 0) return i;
+      }
+    }
+    return -1;
+  };
+
+  let close = findClose(true);
+  if (close < 0) close = findClose(false);
+  if (close < 0) close = text.lastIndexOf(']'); // AI quên đóng ngoặc cân bằng: lấy dấu ] cuối cùng
+  if (close < bodyStart) close = text.length; // không có dấu ] nào: lấy hết phần còn lại
+
+  const end = Math.min(close + 1, text.length);
   return {
-    fullMatch: match[0],
-    taskType: match[1].toUpperCase(),
-    payload: match[2].trim()
+    fullMatch: text.slice(start, end),
+    taskType: head[1].toUpperCase(),
+    payload: text.slice(bodyStart, close).trim()
   };
 }
 
-// Mã hóa Base64 URL-safe hỗ trợ tiếng Việt Unicode cho Kroki Mermaid
-function encodeMermaidBase64UrlSafe(str) {
-  const bytes = new TextEncoder().encode(str);
+// Kroki (đường dẫn GET) yêu cầu: nén deflate (định dạng zlib) rồi mã hóa base64 an toàn cho URL.
+// Chỉ mã hóa base64 như trước thì Kroki không đọc được sơ đồ.
+async function encodeKrokiDeflate(str) {
+  if (typeof CompressionStream === 'undefined') {
+    throw new Error('Trình duyệt này chưa hỗ trợ nén deflate (CompressionStream), Sếp thử Chrome/Safari bản mới nhé.');
+  }
+  const stream = new Blob([new TextEncoder().encode(str)])
+    .stream()
+    .pipeThrough(new CompressionStream('deflate'));
+  const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
   let binary = '';
   bytes.forEach((b) => (binary += String.fromCharCode(b)));
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_');
 }
 
 // Tải ảnh Biểu đồ / Sơ đồ về máy
@@ -652,6 +698,7 @@ window.downloadFreelancerImage = async function (imgUrl, prefix = 'Freelancer_Ch
     window.open(imgUrl, '_blank');
   }
 };
+
 // --- KỸ NĂNG 5: TRA CỨU WIKIPEDIA (Tự động tìm bài khớp nhất + Lấy tóm tắt) ---
 async function lookupWikipedia(query, lang = 'vi') {
   try {
@@ -679,10 +726,15 @@ async function lookupWikipedia(query, lang = 'vi') {
 }
 
 // --- KỸ NĂNG 6: TÌM BÀI BÁO KHOA HỌC TRÊN ARXIV (Lấy Abstract + Link PDF) ---
+// arXiv đã tắt CORS cho trình duyệt (2026) nên phải đi qua Cloudflare Worker proxy
+// (Worker cần có 'export.arxiv.org' trong ALLOWED_HOSTS).
 async function searchArxiv(englishQuery) {
   try {
     const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(englishQuery.trim())}&start=0&max_results=3`;
-    const res = await fetch(url);
+    const res = await fetchWithOptionalProxy(url, { method: 'GET' }, true);
+    if (!res.ok) {
+      return `arXiv trả lỗi ${res.status}. Sếp kiểm tra Worker đã thêm export.arxiv.org vào ALLOWED_HOSTS chưa nhé.`;
+    }
     const xmlText = await res.text();
 
     const parser = new DOMParser();
@@ -736,7 +788,8 @@ async function executeFreelancerTaskIfPresent(replyText, originalBossQuery) {
         .replace(/^```(?:json)?/i, '')
         .replace(/```$/i, '')
         .trim();
-      const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(cleanJson)}&w=600&h=350&bkg=white`;
+      // encodeURIComponent không mã hóa dấu nháy đơn ' -> đổi sang %27 để không làm hỏng nút "Tải ảnh về"
+      const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(cleanJson)}&w=600&h=350&bkg=white`.replace(/'/g, '%27');
       reportContent = `📊 **Báo cáo Sếp!** Em đã vẽ xong biểu đồ số liệu theo lệnh điều phối của **${getEmpById('groq')?.nickname || '@quản_lý'}**:`;
       freelancerMeta = {
         type: 'IMAGE',
@@ -750,8 +803,8 @@ async function executeFreelancerTaskIfPresent(replyText, originalBossQuery) {
         .replace(/```$/i, '')
         .replace(/\\n/g, '\n')
         .trim();
-      const base64 = encodeMermaidBase64UrlSafe(cleanMermaid);
-      const diagramUrl = `https://kroki.io/mermaid/png/${base64}`;
+      const encoded = await encodeKrokiDeflate(cleanMermaid);
+      const diagramUrl = `https://kroki.io/mermaid/png/${encoded}`;
       reportContent = `📐 **Báo cáo Sếp!** Em đã thiết kế xong sơ đồ quy trình/mindmap theo yêu cầu:`;
       freelancerMeta = {
         type: 'IMAGE',
@@ -1214,7 +1267,7 @@ async function transcribeAudioBlob(audioBlob) {
 // 8. LOGIC 3 PHÒNG LÀM VIỆC (DIRECT CALL, PIPELINE, 3-TURN DEBATE)
 // ============================================================================
 
-// Nhận diện nhanh khi Sếp yêu cầu vẽ biểu đồ, sơ đồ, tra từ điển, tìm sách hoặc gọi @freelancer
+// Nhận diện nhanh khi Sếp yêu cầu vẽ biểu đồ, sơ đồ, tra từ điển, tìm sách, Wikipedia, arXiv hoặc gọi @freelancer
 function isFreelancerRequest(text) {
   const lower = text.toLowerCase();
   const freelancerNick = (getEmpById('freelancer')?.nickname || '@freelancer').toLowerCase();
@@ -1234,7 +1287,10 @@ function isFreelancerRequest(text) {
     'phiên âm từ',
     'nghĩa của từ',
     'tìm sách',
-    'sách tham khảo'
+    'sách tham khảo',
+    'wikipedia',
+    'arxiv',
+    'bài báo khoa học'
   ];
   return keywords.some((kw) => lower.includes(kw));
 }
@@ -1632,7 +1688,7 @@ function appendAIMessage(employee, replyText, originalBossQuery, meta = {}) {
   const match = replyText.match(forwardRegex);
   const forwardTarget = match ? match[1].trim() : null;
 
-  // Quét Regex bắt tag [FREELANCER_TASK: LOẠI | DỮ_LIỆU] để thu gọn code thô
+  // Quét thẻ [FREELANCER_TASK: LOẠI | DỮ_LIỆU] để thu gọn code thô
   const freelancerTask = parseFreelancerTaskTag(replyText);
   let cleanContent = replyText;
   if (freelancerTask) {
